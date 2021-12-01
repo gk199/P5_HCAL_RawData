@@ -9,7 +9,8 @@ void process_events() {
   TChain *chain = new TChain("hcalTupleTree/tree");
 
   // chain files to be looped over
-  chain->Add("/afs/cern.ch/work/g/gkopp/MWGR/CMSSW_12_0_0/src/HCALPFG/HcalTupleMaker/test/outputFile_run346603_full.root",0);
+  //  chain->Add("/afs/cern.ch/work/g/gkopp/MWGR/CMSSW_12_0_0/src/HCALPFG/HcalTupleMaker/test/outputFile_run346603_full.root",0);
+  chain->Add("/afs/cern.ch/work/g/gkopp/MWGR/CMSSW_12_0_0/src/HCALPFG/HcalTupleMaker/test/outputFile_run346604_full.root",0);
   
   chain->ls();
   cout << "Total number of entries: " << chain->GetEntries() << endl;

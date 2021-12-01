@@ -3,6 +3,7 @@
 #include <TH2.h>
 #include <TStyle.h>
 #include <TCanvas.h>
+#include <TGraphErrors.h>
 
 void HcalPfgStudies::Loop()
 {
@@ -44,6 +45,11 @@ void HcalPfgStudies::Loop()
 
   TH1D *hf_capID_SOI_check = new TH1D("hf_capID_SOI_check","",4,0,4);
 
+  const int nsScan = 60; //35; // 60
+  int nsStart = 10; //0
+  int nsSpacing = 100;
+  std::vector<int> TDC[nsScan];
+
   // std::map<std::vector<int>, TH1D*> hf_channel_timing;
   
   int hf_soi = 3;
@@ -60,7 +66,7 @@ void HcalPfgStudies::Loop()
       std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
       power++;
     }
-    if ((jentry+1) % 10 != 0) continue;
+    //    if ((jentry+1) % 20 != 0) continue;
     
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
       // cout << "HF channel " << "(" << QIE11DigiIEta->at(ch) << ", " << QIE11DigiIPhi->at(ch) << ", " << QIE11DigiDepth->at(ch) << ")" << endl;
@@ -98,11 +104,17 @@ void HcalPfgStudies::Loop()
 	  } // depth loop
 	} // ieta loop
 	*/
+	if (ch_ieta == 1 && ts == 4) {
+	  int tdc_TS4 = QIE11DigiTDC->at(ch).at(ts); // 0, 1, 2, 3 in TS4
+	  int tdc_TS3 = QIE11DigiTDC->at(ch).at(3)-3; // -1 (delay2) in TS3	  
+	  if (tdc_TS4 < 3) TDC[(jentry / nsSpacing) + nsStart].push_back(tdc_TS4); // floor(jentry / nsSpacing) is delay in ns
+	  else if (tdc_TS3 == -1) TDC[(jentry / nsSpacing) + nsStart].push_back(tdc_TS3);
+	}
 
 	for (int ieta = 1; ieta <= 16; ieta++) {
 	  if (QIE11DigiIEta->at(ch) == ieta && ch_depth == 1 && ts == 4) {
 	    if (hb_tdc_event[ieta].find(ts) == hb_tdc_event[ieta].end()) {
-	      hb_tdc_event[ieta][ts] = new TH2D(Form("hb_TDC_iEta_%d_ts_%d",ieta,ts),Form("-2: error in TS3, -1: delay2 in TS3, 0,1,2,3 in TS4 for ieta=%d depth=1",ieta),35,0,3500, 7,-2,5);
+	      hb_tdc_event[ieta][ts] = new TH2D(Form("hb_TDC_iEta_%d_ts_%d",ieta,ts),Form("-2: error in TS3, -1: delay2 in TS3, 0,1,2,3 in TS4 for ieta=%d depth=1",ieta),nsScan,0,nsScan*100, 7,-2,5);
 	    }
 	    hb_tdc_event[ieta][ts]->Fill(jentry,QIE11DigiTDC->at(ch).at(ts));
 	    hb_tdc_event[ieta][ts]->Fill(jentry,-QIE11DigiTDC->at(ch).at(3)+1);
@@ -111,7 +123,7 @@ void HcalPfgStudies::Loop()
 
         if (ch_ieta == 1 && ch_depth == 1 && (ts == 4 || ts == 3)) {
           if (hb2_tdc_event.find(ts) == hb2_tdc_event.end()) {
-            hb2_tdc_event[ts] = new TH2D(Form("hb_TDC_Event_tp7_ts_%d",ts),"",35,0,3500, 5,0,5);
+            hb2_tdc_event[ts] = new TH2D(Form("hb_TDC_Event_tp7_ts_%d",ts),"",nsScan,0,nsScan*100, 5,0,5);
           }
           hb2_tdc_event[ts]->Fill(jentry,QIE11DigiTDC->at(ch).at(ts));
 	}
@@ -143,11 +155,33 @@ void HcalPfgStudies::Loop()
     
   } // end for loop over nentries
 
+  float TDCmean[nsScan] = {0};
+  float TDCrms[nsScan] = {0};
+  float PercentTDC01[nsScan] = {0};
+  float time[nsScan] = {0};
+  float time_err[nsScan] = {0};
+  for (int ns=0; ns < nsScan; ns++) {
+    for (int i=0; i < TDC[ns].size(); i++) {
+      TDCmean[ns] += TDC[ns][i];
+      TDCrms[ns] += pow(TDC[ns][i], 2);
+      if (TDC[ns][i] == 1) PercentTDC01[ns] += 1;
+    }
+    TDCmean[ns] /= TDC[ns].size();
+    TDCrms[ns] = sqrt(TDCrms[ns] / TDC[ns].size() - pow(TDCmean[ns], 2)); // sqrt(e(x^2) - e(x)^2) gives stdev
+    PercentTDC01[ns] /= TDC[ns].size();
+    time[ns] = ns + nsStart;
+    std::cout << TDCmean[ns] << " = TDCmean for ns = " << time[ns] << " and stdev = " << TDCrms[ns] << std::endl;
+  }
+  TGraphErrors *TDC_LEDdelay = new TGraphErrors(nsScan,time,TDCmean,time_err,TDCrms);
+  TGraph *PercentDelay01 = new TGraph(nsScan, time, PercentTDC01);
+
   // output file for histograms
   TFile file_out("hcal_histograms.root","RECREATE");
 
   // write histograms to output file
 
+  TDC_LEDdelay->Write("TDC_LEDdelay");
+  PercentDelay01->Write("Percent_Delay01_LEDdelay");
   for (std::map<int,TH1D*>::iterator it = hf_adc.begin() ; it != hf_adc.end(); ++it)
     it->second->Write();
   for (std::map<int,TH1D*>::iterator it = hf_tdc.begin() ; it != hf_tdc.end(); ++it)
