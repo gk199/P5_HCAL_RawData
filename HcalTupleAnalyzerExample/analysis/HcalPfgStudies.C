@@ -42,6 +42,7 @@ void HcalPfgStudies::Loop()
   std::map<int, std::map<int,TH2D*>> hb_tdc_event;
   std::map<int, TH2D*> hb2_tdc_event;
   std::map<int,TH1D*> hf_charge;
+  std::map<int,TGraphErrors*> TDC_LEDdelay_depth;
 
   TH1D *hf_capID_SOI_check = new TH1D("hf_capID_SOI_check","",4,0,4);
 
@@ -118,16 +119,16 @@ void HcalPfgStudies::Loop()
 	    TDC[(jentry / nsSpacing) + nsStart].push_back(tdc_TS4); // floor(jentry / nsSpacing) is delay in ns
 	    if (QIE11DigiIEta->at(ch) == 1 && ch_iphi == 1 && ch_depth == 1) {
 	      TDC_ieta1iphi1depth1[(jentry / nsSpacing) + nsStart].push_back(tdc_TS4);
-	      TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(-30);
+              if (tdc_TS4 == 0) TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(4);
+              if (tdc_TS4 == 1) TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(9.5);
+              if (tdc_TS4 == 2) TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(30);
 	    }
 	  }
 	  else if (tdc_TS3 == -1) {
 	    TDC[(jentry / nsSpacing) + nsStart].push_back(tdc_TS3);
             if (QIE11DigiIEta->at(ch) == 1 && ch_iphi == 1 && ch_depth == 1) {
 	      TDC_ieta1iphi1depth1[(jentry / nsSpacing) + nsStart].push_back(tdc_TS3);
-              if (tdc_TS3 == 0) TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(4);
-              if (tdc_TS3 == 1) TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(9.5);
-              if (tdc_TS3 == 2) TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(30);
+              TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(-30);
 	    }
 	  }
 	}
@@ -195,18 +196,20 @@ void HcalPfgStudies::Loop()
       for (int i=0; i < TDC[ns].size(); i++) {
 	TDCmean[ns] += TDC[ns][i];
 	TDCrms[ns] += pow(TDC[ns][i], 2);
-	TDCmean_ns[ns] += TDC_ieta1iphi1depth1_inns[ns][i];
-	TDCrms_ns[ns] += pow(TDC_ieta1iphi1depth1_inns[ns][i], 2);
         if (TDC[ns][i] == -1) PercentTDC1[ns] += 1;
         if (TDC[ns][i] == 0) PercentTDC2[ns] += 1;
 	if (TDC[ns][i] == 1) PercentTDC3[ns] += 1;
         if (TDC[ns][i] == 2) PercentTDC4[ns] += 1;
       }
-      for (int i=0; i < TDC_ieta1iphi1depth1[ns].size(); i++) if (TDC_ieta1iphi1depth1[ns][i] == 1) PercentTDC3_ieta1phi1depth1[ns] += 1;
+      for (int i=0; i < TDC_ieta1iphi1depth1[ns].size(); i++) {
+	TDCmean_ns[ns] += TDC_ieta1iphi1depth1_inns[ns][i];
+        TDCrms_ns[ns] += pow(TDC_ieta1iphi1depth1_inns[ns][i], 2);
+	if (TDC_ieta1iphi1depth1[ns][i] == 1) PercentTDC3_ieta1phi1depth1[ns] += 1;
+      }
       TDCmean[ns] /= TDC[ns].size();
       TDCrms[ns] = sqrt(TDCrms[ns] / TDC[ns].size() - pow(TDCmean[ns], 2)); // sqrt(e(x^2) - e(x)^2) gives stdev
       TDCmean_ns[ns] /= TDC_ieta1iphi1depth1_inns[ns].size();
-      TDCrms_ns[ns] = sqrt(TDCrms_ns[ns] / TDC_ieta1iphi1depth1_inns.size() - pow(TDCmean_ns[ns], 2));
+      TDCrms_ns[ns] = sqrt(TDCrms_ns[ns] / TDC_ieta1iphi1depth1_inns[ns].size() - pow(TDCmean_ns[ns], 2));
       PercentTDC1[ns] /= TDC[ns].size();
       PercentTDC2[ns] /= TDC[ns].size();
       PercentTDC3[ns] /= TDC[ns].size();
@@ -216,6 +219,13 @@ void HcalPfgStudies::Loop()
     }
   }
   TGraphErrors *TDC_LEDdelay = new TGraphErrors(nsScan,time,TDCmean,time_err,TDCrms);
+
+  for (int depth = 0; depth < 4; depth++) {  
+    if (TDC_LEDdelay_depth.find(depth) == TDC_LEDdelay_depth.end()) {
+      TDC_LEDdelay_depth[depth] = new TGraphErrors(nsScan,time,TDCmean,time_err,TDCrms);
+    }
+  }
+
   TGraphErrors *TDC_LEDdelay_ns = new TGraphErrors(nsScan,time,TDCmean_ns,time_err,TDCrms_ns);
   TGraph *PercentDelay1 = new TGraph(nsScan, time, PercentTDC1);
   TGraph *PercentDelay2 = new TGraph(nsScan, time, PercentTDC2);
@@ -230,6 +240,8 @@ void HcalPfgStudies::Loop()
 
   TDC_LEDdelay->Write("TDC_LEDdelay");
   TDC_LEDdelay_ns->Write("TDC_LEDdelay_ns");
+  for (std::map<int,TGraphErrors*>::iterator it = TDC_LEDdelay_depth.begin() ; it != TDC_LEDdelay_depth.end(); ++it)
+    it->second->Write();
   PercentDelay1->Write("Percent_Delay1"); // TS3 very delayed
   PercentDelay2->Write("Percent_Delay2"); // TS4 prompt
   PercentDelay3->Write("Percent_Delay3"); // delay 1
