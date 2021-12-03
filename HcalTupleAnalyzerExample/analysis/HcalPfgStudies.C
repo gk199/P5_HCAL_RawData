@@ -43,13 +43,18 @@ void HcalPfgStudies::Loop()
   std::map<int, TH2D*> hb2_tdc_event;
   std::map<int,TH1D*> hf_charge;
   std::map<int,TGraphErrors*> TDC_LEDdelay_depth;
+  std::map<int,TGraph*> PercentDelay1;
+  std::map<int,TGraph*> PercentDelay2;
+  std::map<int,TGraph*> PercentDelay3;
+  std::map<int,TGraph*> PercentDelay4;
 
   TH1D *hf_capID_SOI_check = new TH1D("hf_capID_SOI_check","",4,0,4);
 
   const int nsScan = 60; //35; // 60
   int nsStart = 10; //0
   int nsSpacing = 100;
-  std::vector<int> TDC[nsScan];
+  const int HBdepth = 4;
+  std::vector<int> TDC[HBdepth][nsScan];
   std::vector<int> TDC_ieta1iphi1depth1[nsScan];
   std::vector<int> TDC_ieta1iphi1depth1_inns[nsScan];
 
@@ -116,7 +121,7 @@ void HcalPfgStudies::Loop()
 	  int tdc_TS4 = QIE11DigiTDC->at(ch).at(ts); // 0, 1, 2, 3 in TS4
 	  int tdc_TS3 = QIE11DigiTDC->at(ch).at(3)-3; // -1 (delay2) in TS3	  
 	  if (tdc_TS4 < 3) {
-	    TDC[(jentry / nsSpacing) + nsStart].push_back(tdc_TS4); // floor(jentry / nsSpacing) is delay in ns
+	    TDC[ch_depth-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS4); // floor(jentry / nsSpacing) is delay in ns
 	    if (QIE11DigiIEta->at(ch) == 1 && ch_iphi == 1 && ch_depth == 1) {
 	      TDC_ieta1iphi1depth1[(jentry / nsSpacing) + nsStart].push_back(tdc_TS4);
               if (tdc_TS4 == 0) TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(4);
@@ -125,7 +130,7 @@ void HcalPfgStudies::Loop()
 	    }
 	  }
 	  else if (tdc_TS3 == -1) {
-	    TDC[(jentry / nsSpacing) + nsStart].push_back(tdc_TS3);
+	    TDC[ch_depth-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS3);
             if (QIE11DigiIEta->at(ch) == 1 && ch_iphi == 1 && ch_depth == 1) {
 	      TDC_ieta1iphi1depth1[(jentry / nsSpacing) + nsStart].push_back(tdc_TS3);
               TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(-30);
@@ -179,58 +184,79 @@ void HcalPfgStudies::Loop()
     
   } // end for loop over nentries
 
-  float TDCmean[nsScan] = {0};
-  float TDCrms[nsScan] = {0};
+  float TDCmean[HBdepth][nsScan] = {{0}};
+  float TDCrms[HBdepth][nsScan] = {{0}};
   float TDCmean_ns[nsScan] = {0};
   float TDCrms_ns[nsScan] = {0};
-  float PercentTDC1[nsScan] = {0};
-  float PercentTDC2[nsScan] = {0};
-  float PercentTDC3[nsScan] = {0};
+  float PercentTDC1[HBdepth][nsScan] = {{0}};
+  float PercentTDC2[HBdepth][nsScan] = {{0}};
+  float PercentTDC3[HBdepth][nsScan] = {{0}};
+  float PercentTDC4[HBdepth][nsScan] = {{0}};
   float PercentTDC3_ieta1phi1depth1[nsScan] = {0};
-  float PercentTDC4[nsScan] = {0};
   float time[nsScan] = {0};
   float time_err[nsScan] = {0};
+
   for (int ns=0; ns < nsScan; ns++) {
     time[ns] = ns;
     if (ns >= nsStart) {
-      for (int i=0; i < TDC[ns].size(); i++) {
-	TDCmean[ns] += TDC[ns][i];
-	TDCrms[ns] += pow(TDC[ns][i], 2);
-        if (TDC[ns][i] == -1) PercentTDC1[ns] += 1;
-        if (TDC[ns][i] == 0) PercentTDC2[ns] += 1;
-	if (TDC[ns][i] == 1) PercentTDC3[ns] += 1;
-        if (TDC[ns][i] == 2) PercentTDC4[ns] += 1;
+      for (int depth = 0; depth < 4; depth++) {
+	for (int i=0; i < TDC[depth][ns].size(); i++) {
+	  TDCmean[depth][ns] += TDC[depth][ns][i];
+	  TDCrms[depth][ns] += pow(TDC[depth][ns][i], 2);
+	  if (TDC[depth][ns][i] == -1) PercentTDC1[depth][ns] += 1;
+	  if (TDC[depth][ns][i] == 0) PercentTDC2[depth][ns] += 1;
+	  if (TDC[depth][ns][i] == 1) PercentTDC3[depth][ns] += 1;
+	  if (TDC[depth][ns][i] == 2) PercentTDC4[depth][ns] += 1;
+	}
       }
       for (int i=0; i < TDC_ieta1iphi1depth1[ns].size(); i++) {
 	TDCmean_ns[ns] += TDC_ieta1iphi1depth1_inns[ns][i];
         TDCrms_ns[ns] += pow(TDC_ieta1iphi1depth1_inns[ns][i], 2);
 	if (TDC_ieta1iphi1depth1[ns][i] == 1) PercentTDC3_ieta1phi1depth1[ns] += 1;
       }
-      TDCmean[ns] /= TDC[ns].size();
-      TDCrms[ns] = sqrt(TDCrms[ns] / TDC[ns].size() - pow(TDCmean[ns], 2)); // sqrt(e(x^2) - e(x)^2) gives stdev
+      for (int depth = 0; depth < 4; depth++) {
+	TDCmean[depth][ns] /= TDC[depth][ns].size();
+	TDCrms[depth][ns] = sqrt(TDCrms[depth][ns] / TDC[depth][ns].size() - pow(TDCmean[depth][ns], 2)); // sqrt(e(x^2) - e(x)^2) gives stdev
+	PercentTDC1[depth][ns] /= TDC[depth][ns].size();
+	PercentTDC2[depth][ns] /= TDC[depth][ns].size();
+	PercentTDC3[depth][ns] /= TDC[depth][ns].size();
+	PercentTDC4[depth][ns] /= TDC[depth][ns].size();
+      }
       TDCmean_ns[ns] /= TDC_ieta1iphi1depth1_inns[ns].size();
       TDCrms_ns[ns] = sqrt(TDCrms_ns[ns] / TDC_ieta1iphi1depth1_inns[ns].size() - pow(TDCmean_ns[ns], 2));
-      PercentTDC1[ns] /= TDC[ns].size();
-      PercentTDC2[ns] /= TDC[ns].size();
-      PercentTDC3[ns] /= TDC[ns].size();
       PercentTDC3_ieta1phi1depth1[ns] /= TDC_ieta1iphi1depth1[ns].size();
-      PercentTDC4[ns] /= TDC[ns].size();
-      std::cout << TDCmean[ns] << " = TDCmean for ns = " << time[ns] << " and stdev = " << TDCrms[ns] << std::endl;
     }
   }
-  TGraphErrors *TDC_LEDdelay = new TGraphErrors(nsScan,time,TDCmean,time_err,TDCrms);
+  //  TGraphErrors *TDC_LEDdelay = new TGraphErrors(nsScan,time,TDCmean,time_err,TDCrms);
 
   for (int depth = 0; depth < 4; depth++) {  
     if (TDC_LEDdelay_depth.find(depth) == TDC_LEDdelay_depth.end()) {
-      TDC_LEDdelay_depth[depth] = new TGraphErrors(nsScan,time,TDCmean,time_err,TDCrms);
+      TDC_LEDdelay_depth[depth] = new TGraphErrors(nsScan,time,TDCmean[depth],time_err,TDCrms[depth]);
+      TDC_LEDdelay_depth[depth]->SetNameTitle(Form("TDC_LEDdelay_depth%d",depth+1));
+    }
+    if (PercentDelay1.find(depth) == PercentDelay1.end()) {
+      PercentDelay1[depth] = new TGraph(nsScan, time, PercentTDC1[depth]);
+      PercentDelay1[depth]->SetNameTitle(Form("Percent_Delay1_depth%d",depth+1));
+    }
+    if (PercentDelay2.find(depth) == PercentDelay2.end()) {
+      PercentDelay2[depth] = new TGraph(nsScan, time, PercentTDC2[depth]);
+      PercentDelay2[depth]->SetNameTitle(Form("Percent_Delay2_depth%d",depth+1));
+    }
+    if (PercentDelay3.find(depth) == PercentDelay3.end()) {
+      PercentDelay3[depth] = new TGraph(nsScan, time, PercentTDC3[depth]);
+      PercentDelay3[depth]->SetNameTitle(Form("Percent_Delay3_depth%d",depth+1));
+    }
+    if (PercentDelay4.find(depth) == PercentDelay4.end()) {
+      PercentDelay4[depth] = new TGraph(nsScan, time, PercentTDC4[depth]);
+      PercentDelay4[depth]->SetNameTitle(Form("Percent_Delay4_depth%d",depth+1));
     }
   }
 
   TGraphErrors *TDC_LEDdelay_ns = new TGraphErrors(nsScan,time,TDCmean_ns,time_err,TDCrms_ns);
-  TGraph *PercentDelay1 = new TGraph(nsScan, time, PercentTDC1);
-  TGraph *PercentDelay2 = new TGraph(nsScan, time, PercentTDC2);
-  TGraph *PercentDelay3 = new TGraph(nsScan, time, PercentTDC3);
-  TGraph *PercentDelay4 = new TGraph(nsScan, time, PercentTDC4);
+  //  TGraph *PercentDelay1 = new TGraph(nsScan, time, PercentTDC1);
+  //  TGraph *PercentDelay2 = new TGraph(nsScan, time, PercentTDC2);
+  //  TGraph *PercentDelay3 = new TGraph(nsScan, time, PercentTDC3);
+  //  TGraph *PercentDelay4 = new TGraph(nsScan, time, PercentTDC4);
   TGraph *PercentDelay3_ieta1iphi1depth1 = new TGraph(nsScan, time, PercentTDC3_ieta1phi1depth1);
 
   // output file for histograms
@@ -238,14 +264,18 @@ void HcalPfgStudies::Loop()
 
   // write histograms to output file
 
-  TDC_LEDdelay->Write("TDC_LEDdelay");
+  //  TDC_LEDdelay->Write("TDC_LEDdelay");
   TDC_LEDdelay_ns->Write("TDC_LEDdelay_ns");
   for (std::map<int,TGraphErrors*>::iterator it = TDC_LEDdelay_depth.begin() ; it != TDC_LEDdelay_depth.end(); ++it)
     it->second->Write();
-  PercentDelay1->Write("Percent_Delay1"); // TS3 very delayed
-  PercentDelay2->Write("Percent_Delay2"); // TS4 prompt
-  PercentDelay3->Write("Percent_Delay3"); // delay 1
-  PercentDelay4->Write("Percent_Delay4"); // delay 2
+  for (std::map<int,TGraph*>::iterator it = PercentDelay1.begin() ; it != PercentDelay1.end(); ++it) it->second->Write();
+  for (std::map<int,TGraph*>::iterator it = PercentDelay2.begin() ; it != PercentDelay2.end(); ++it) it->second->Write();
+  for (std::map<int,TGraph*>::iterator it = PercentDelay3.begin() ; it != PercentDelay3.end(); ++it) it->second->Write();
+  for (std::map<int,TGraph*>::iterator it = PercentDelay4.begin() ; it != PercentDelay4.end(); ++it) it->second->Write();
+  //  PercentDelay1->Write("Percent_Delay1"); // TS3 very delayed
+  //  PercentDelay2->Write("Percent_Delay2"); // TS4 prompt
+  //  PercentDelay3->Write("Percent_Delay3"); // delay 1
+  //  PercentDelay4->Write("Percent_Delay4"); // delay 2
   PercentDelay3_ieta1iphi1depth1->Write("Percent_Delay3_ieta1iphi1depth1");
   for (std::map<int,TH1D*>::iterator it = hf_adc.begin() ; it != hf_adc.end(); ++it)
     it->second->Write();
