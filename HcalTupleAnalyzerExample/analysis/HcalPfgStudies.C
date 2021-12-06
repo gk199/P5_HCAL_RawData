@@ -117,12 +117,12 @@ void HcalPfgStudies::Loop()
 	} // ieta loop
 
 	// this tracks the TDC by LED delay scan
-	if (ch_ieta == 1 && ts == 4) {
+	if (QIE11DigiIEta->at(ch) == 1 && ts == 4) {
 	  int tdc_TS4 = QIE11DigiTDC->at(ch).at(ts); // 0, 1, 2, 3 in TS4
 	  int tdc_TS3 = QIE11DigiTDC->at(ch).at(3)-3; // -1 (delay2) in TS3	  
 	  if (tdc_TS4 < 3) {
 	    TDC[ch_depth-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS4); // floor(jentry / nsSpacing) is delay in ns
-	    if (QIE11DigiIEta->at(ch) == 1 && ch_iphi == 1 && ch_depth == 1) {
+	    if (ch_iphi == 1 && ch_depth == 1) {
 	      TDC_ieta1iphi1depth1[(jentry / nsSpacing) + nsStart].push_back(tdc_TS4);
               if (tdc_TS4 == 0) TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(4);
               if (tdc_TS4 == 1) TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(9.5);
@@ -131,7 +131,7 @@ void HcalPfgStudies::Loop()
 	  }
 	  else if (tdc_TS3 == -1) {
 	    TDC[ch_depth-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS3);
-            if (QIE11DigiIEta->at(ch) == 1 && ch_iphi == 1 && ch_depth == 1) {
+            if (ch_iphi == 1 && ch_depth == 1) {
 	      TDC_ieta1iphi1depth1[(jentry / nsSpacing) + nsStart].push_back(tdc_TS3);
               TDC_ieta1iphi1depth1_inns[(jentry / nsSpacing) + nsStart].push_back(-30);
 	    }
@@ -232,27 +232,28 @@ void HcalPfgStudies::Loop()
   for (int depth = 0; depth < 4; depth++) {  
     if (TDC_LEDdelay_depth.find(depth) == TDC_LEDdelay_depth.end()) {
       TDC_LEDdelay_depth[depth] = new TGraphErrors(nsScan,time,TDCmean[depth],time_err,TDCrms[depth]);
-      TDC_LEDdelay_depth[depth]->SetNameTitle(Form("TDC_LEDdelay_depth%d",depth+1));
+      TDC_LEDdelay_depth[depth]->SetNameTitle(Form("TDC_LEDdelay_depth%d",depth+1),Form("TDC code vs LED delay in Depth %d, ieta=1",depth+1));
     }
     if (PercentDelay1.find(depth) == PercentDelay1.end()) {
       PercentDelay1[depth] = new TGraph(nsScan, time, PercentTDC1[depth]);
-      PercentDelay1[depth]->SetNameTitle(Form("Percent_Delay1_depth%d",depth+1));
+      PercentDelay1[depth]->SetNameTitle(Form("Percent_Delay1_depth%d",depth+1),Form("%% TDC code = 10 in TS3 vs LED delay in Depth %d, ieta=1",depth+1));
     }
     if (PercentDelay2.find(depth) == PercentDelay2.end()) {
       PercentDelay2[depth] = new TGraph(nsScan, time, PercentTDC2[depth]);
-      PercentDelay2[depth]->SetNameTitle(Form("Percent_Delay2_depth%d",depth+1));
+      PercentDelay2[depth]->SetNameTitle(Form("Percent_Delay2_depth%d",depth+1),Form("%% TDC code = 00 in TS4 vs LED delay in Depth %d, ieta=1",depth+1));
     }
     if (PercentDelay3.find(depth) == PercentDelay3.end()) {
       PercentDelay3[depth] = new TGraph(nsScan, time, PercentTDC3[depth]);
-      PercentDelay3[depth]->SetNameTitle(Form("Percent_Delay3_depth%d",depth+1));
+      PercentDelay3[depth]->SetNameTitle(Form("Percent_Delay3_depth%d",depth+1),Form("%% TDC code = 01 in TS4 vs LED delay in Depth %d, ieta=1",depth+1));
     }
     if (PercentDelay4.find(depth) == PercentDelay4.end()) {
       PercentDelay4[depth] = new TGraph(nsScan, time, PercentTDC4[depth]);
-      PercentDelay4[depth]->SetNameTitle(Form("Percent_Delay4_depth%d",depth+1));
+      PercentDelay4[depth]->SetNameTitle(Form("Percent_Delay4_depth%d",depth+1),Form("%% TDC code = 10 in TS4 vs LED delay in Depth %d, ieta=1",depth+1));
     }
   }
 
   TGraphErrors *TDC_LEDdelay_ns = new TGraphErrors(nsScan,time,TDCmean_ns,time_err,TDCrms_ns);
+  TDC_LEDdelay_ns->SetNameTitle("TDC_LEDdelay_ns","TDC (ns) of code vs LED delay (ns) in ieta=iphi=depth=1");
   //  TGraph *PercentDelay1 = new TGraph(nsScan, time, PercentTDC1);
   //  TGraph *PercentDelay2 = new TGraph(nsScan, time, PercentTDC2);
   //  TGraph *PercentDelay3 = new TGraph(nsScan, time, PercentTDC3);
