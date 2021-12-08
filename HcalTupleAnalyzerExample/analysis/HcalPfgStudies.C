@@ -198,6 +198,9 @@ void HcalPfgStudies::Loop()
   float time[nsScan] = {0};
   float time_err[nsScan] = {0};
 
+  int peakDelayed01[HBdepth][iPhi] = {{0}};
+  int iPhi_pos[iPhi] = {0};
+
   for (int ns=0; ns < nsScan; ns++) {
     time[ns] = ns;
     if (ns >= nsStart) {
@@ -262,8 +265,13 @@ void HcalPfgStudies::Loop()
 	PercentDelay3_iphi[depth][iphi] = new TGraph(nsScan, time, PercentTDC3_iphi[depth][iphi]);
 	PercentDelay3_iphi[depth][iphi]->SetNameTitle(Form("Percent_Delay3_iphi%d_depth%d",iphi+1,depth+1),Form("%% TDC code = 01 in TS4 vs LED delay in iphi=%d, ieta=1, depth=%d",iphi+1,depth+1));
       }
-    }
-  }
+      iPhi_pos[iphi] = iphi + 1; // 1-72
+      peakDelayed01[depth][iphi] = distance(PercentTDC3_iphi[depth][iphi], max_element(PercentTDC3_iphi[depth][iphi], PercentTDC3_iphi[depth][iphi] + nsScan)); // for each cell, determine at what LED delay scan (in ns) the 01 peak occurs at
+    } // iphi loop 0-71
+    if (depth == 0) std::cout << peakDelayed01[depth] << std::endl;
+  } // depth loop 0-3
+
+  TGraph *PeakDelay01 = new TGraph(iPhi,iPhi_pos,peakDelayed01[0]);
 
   TGraphErrors *TDC_LEDdelay_ns = new TGraphErrors(nsScan,time,TDCmean_ns,time_err,TDCrms_ns);
   TDC_LEDdelay_ns->SetNameTitle("TDC_LEDdelay_ns","TDC (ns) of code vs LED delay (ns) in ieta=iphi=depth=1");
@@ -276,6 +284,7 @@ void HcalPfgStudies::Loop()
   // write histograms to output file
 
   TDC_LEDdelay_ns->Write("TDC_LEDdelay_ns");
+  PeakDelay01->Write("PeakDelay01");
   for (std::map<int,TGraphErrors*>::iterator it = TDC_LEDdelay_depth.begin() ; it != TDC_LEDdelay_depth.end(); ++it) it->second->Write();
   for (std::map<int,TGraph*>::iterator it = PercentDelay1.begin() ; it != PercentDelay1.end(); ++it) it->second->Write();
   for (std::map<int,TGraph*>::iterator it = PercentDelay2.begin() ; it != PercentDelay2.end(); ++it) it->second->Write();
