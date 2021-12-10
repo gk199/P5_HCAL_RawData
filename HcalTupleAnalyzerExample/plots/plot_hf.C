@@ -78,7 +78,24 @@ int plot_hf() {
   c_TDC_LEDdelay_depth_ns->Divide(2,2);
 
   TCanvas *c_PeakDelay01_depth = new TCanvas("c_PeakDelay01","",1600,1200);
-  c_PeakDelay01_depth->Divide(2,2);
+
+  for (int iEta = 0; iEta < 16; iEta++) {
+    c_PeakDelay01_depth->Clear();
+    c_PeakDelay01_depth->Divide(2,2);
+    TString ieta = Form("%d",iEta+1);
+    for (int Depth = 1; Depth < 5; Depth ++) {
+      TString depth = Form("%d",Depth);
+      c_PeakDelay01_depth->cd(Depth);
+      TGraph *gr_iphi = (TGraph*) f->Get("PeakDelay01_Depth"+depth+"_iEta"+ieta);
+      gr_iphi->GetHistogram()->SetMaximum(42.);
+      gr_iphi->GetHistogram()->SetMinimum(15.);
+      gr_iphi->Draw();
+      gr_iphi->SetTitle("LED scan time (ns) when peak TDC=01 occurs vs. iphi (ieta="+ieta+", depth="+depth+")");
+      gr_iphi->GetXaxis()->SetTitle("iphi");
+      gr_iphi->GetYaxis()->SetTitle("LED scan time (ns) for TDC=01 peak");
+    }
+    c_PeakDelay01_depth->SaveAs("PeakDelay01_ieta"+ieta+"_depth.pdf");
+  }
 
   for (int Depth = 1; Depth < 5; Depth ++) {
     TString depth = Form("%d",Depth);
@@ -110,15 +127,6 @@ int plot_hf() {
     gre_ns->GetXaxis()->SetTitle("LED delay scan in ns");
     gre_ns->GetYaxis()->SetTitle("Average ns of TDC code");
 
-    c_PeakDelay01_depth->cd(Depth);
-    TGraph *gr_iphi = (TGraph*) f->Get("PeakDelay01_Depth"+depth);
-    gr_iphi->GetHistogram()->SetMaximum(42.);
-    gr_iphi->GetHistogram()->SetMinimum(15.);
-    gr_iphi->Draw();
-    gr_iphi->SetTitle("LED scan time (ns) when peak TDC=01 occurs vs. iphi (ieta=1, depth="+depth+")");
-    gr_iphi->GetXaxis()->SetTitle("iphi");
-    gr_iphi->GetYaxis()->SetTitle("LED scan time (ns) for TDC=01 peak");
-
     TCanvas *c_Percent_Delay3_Depth_iphi =new TCanvas("c_Percent_Delay3_Depth_iphi","",1600,1500);
     c_Percent_Delay3_Depth_iphi->Divide(8,9);
     for (int iphi= 1; iphi <= 72; iphi++) {
@@ -134,7 +142,6 @@ int plot_hf() {
   }
   c_TDC_LEDdelay_depth->SaveAs("TDC_LED_depth.pdf");
   c_TDC_LEDdelay_depth_ns->SaveAs("TDC_LED_depth_ns.pdf");
-  c_PeakDelay01_depth->SaveAs("PeakDelay01_depth.pdf");
 
   return 0;
 }
