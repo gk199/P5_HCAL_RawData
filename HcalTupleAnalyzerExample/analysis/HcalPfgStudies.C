@@ -312,19 +312,15 @@ void HcalPfgStudies::Loop()
       for (int iphi = 0; iphi < iPhi; iphi++) peakDelayed01_float[depth][ieta][iphi] = peakDelayed01[depth][ieta][iphi];
     }
   }
-  float ADC4_3plus4[HBdepth][iEta][iPhi] = {{{0}}};
-  std::map<int, std::map<int, TGraph*>> Ratio_ADC3_4;
+  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4;
 
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     Long64_t ientry = LoadTree(jentry);
     if (ientry < 0) break;
     nb = fChain->GetEntry(jentry);   nbytes += nb;
     // if (Cut(ientry) < 0) continue;
-    if (jentry+1 == std::pow(2,power) || ((jentry+1) % 100) == 0) {
-      std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
-      power++;
-    }
-    if ((jentry+1) % 10 != 0) continue;
+    if (((jentry+1) % 100) == 0) std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
+    //    if ((jentry+1) % 10 != 0) continue;
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
       int ch_ieta = QIE11DigiIEta->at(ch);
       int ch_iphi = QIE11DigiIPhi->at(ch);
@@ -333,18 +329,12 @@ void HcalPfgStudies::Loop()
 	if (peakDelayed01[ch_depth-1][ch_ieta-1][ch_iphi-1] == (jentry / nsSpacing) + nsStart) {
 	  float ADC3 = QIE11DigiADC->at(ch).at(3);
 	  float ADC4 = QIE11DigiADC->at(ch).at(4);
-	  ADC4_3plus4[ch_depth-1][ch_ieta-1][ch_iphi-1] = ADC4 / (ADC3 + ADC4);
+	  if (Ratio_ADC3_4[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4[ch_depth-1].end()) Ratio_ADC3_4[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=01 peak (ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,0,nsScan-nsStart,50,0.48,0.56);
+	  Ratio_ADC3_4[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, ADC4 / (ADC3 + ADC4));
 	}
       }
     }
   }
-  for (int depth = 0; depth < 4; depth++) {
-    for (int ieta = 0; ieta < 1; ieta++) {
-      Ratio_ADC3_4[depth][ieta] = new TGraph(iPhi, peakDelayed01_float[depth][ieta], ADC4_3plus4[depth][ieta]);
-      Ratio_ADC3_4[depth][ieta]->SetNameTitle(Form("ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=01 peak (ieta=%d, depth=%d, all iphi)",ieta+1, depth+1));
-    }
-  }
-
 
   // output file for histograms
   TFile file_out("hcal_histograms.root","RECREATE");
@@ -355,7 +345,7 @@ void HcalPfgStudies::Loop()
     for (std::map<int,TGraph*>::iterator it = PeakDelay01[depth].begin() ; it != PeakDelay01[depth].end(); ++it) it->second->Write();
     for (std::map<int,TGraph*>::iterator it = PeakDelay01_ieta[depth].begin() ; it != PeakDelay01_ieta[depth].end(); ++it) it->second->Write();
     for (std::map<int,TGraph*>::iterator it = PercentDelay3_iphi[depth].begin() ; it != PercentDelay3_iphi[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TGraph*>::iterator it = Ratio_ADC3_4[depth].begin(); it != Ratio_ADC3_4[depth].end(); ++it) it->second->Write();
+    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4[depth].begin(); it != Ratio_ADC3_4[depth].end(); ++it) it->second->Write();
   }
   for (std::map<int,TGraphErrors*>::iterator it = TDC_LEDdelay_depth.begin() ; it != TDC_LEDdelay_depth.end(); ++it) it->second->Write();
   for (std::map<int,TGraphErrors*>::iterator it = TDC_LEDdelay_ns_depth.begin() ; it != TDC_LEDdelay_ns_depth.end(); ++it) it->second->Write();

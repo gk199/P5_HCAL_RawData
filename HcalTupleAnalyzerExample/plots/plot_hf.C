@@ -51,6 +51,20 @@ int plot_hf() {
   }
   c_tdc_ieta->SaveAs("hf_tdc_ieta.pdf");
 
+  TCanvas *c_ADC_Ratio = new TCanvas("c_ADC_Ratio","",1600,1200);
+  c_ADC_Ratio->Divide(2,2);
+  for (int depth = 1; depth < 5; depth++) {
+    TString Depth = Form("%d",depth);
+    c_ADC_Ratio->cd(depth);
+    TH2D *h = (TH2D*) f->Get("ADC3_ADC4_Ratio_depth"+Depth+"_ieta1");
+    h->Draw("COLZ");
+    h->SetTitle("ADC4 / (ADC3 + ADC4) ratio vs ns of TDC=01 peak in LED delay scan, depth "+Depth);
+    h->GetXaxis()->SetTitle("ns of TDC=01 peak");
+    h->GetYaxis()->SetTitle("ADC 4 / (ADC3 + ADC4)");
+    gPad->SetLogz();
+  }
+  c_ADC_Ratio->SaveAs("ADC_Ratio.pdf");
+    
   /*
   TCanvas *c_Percent_LEDdelay = new TCanvas("c_Percent_LEDdelay","",1600,1200);
   c_Percent_LEDdelay->cd();
@@ -78,6 +92,8 @@ int plot_hf() {
   c_TDC_LEDdelay_depth_ns->Divide(2,2);
 
   TCanvas *c_PeakDelay01_depth = new TCanvas("c_PeakDelay01","",1600,1200);
+  TCanvas *c_PeakDelay01_overlay = new TCanvas("c_PeakDelay01_all","",1600,1200);
+  c_PeakDelay01_overlay->Divide(2,2);
 
   for (int iEta = 0; iEta < 16; iEta++) {
     c_PeakDelay01_depth->Clear();
@@ -95,6 +111,37 @@ int plot_hf() {
       gr_iphi->GetYaxis()->SetTitle("LED scan time (ns) for TDC=01 peak");
     }
     c_PeakDelay01_depth->SaveAs("PeakDelay01_ieta"+ieta+"_depth.pdf");
+    for (int Depth = 1; Depth < 5; Depth ++) {
+      TString depth = Form("%d",Depth);
+      c_PeakDelay01_overlay->cd(Depth);
+      TGraph *gr_iphi = (TGraph*) f->Get("PeakDelay01_Depth"+depth+"_iEta"+ieta);
+      gr_iphi->GetHistogram()->SetMaximum(42.);
+      gr_iphi->GetHistogram()->SetMinimum(15.);
+      gr_iphi->Draw();
+      gr_iphi->SetTitle("LED scan time (ns) when peak TDC=01 occurs vs. iphi (ieta=all, depth="+depth+")");
+      gr_iphi->GetXaxis()->SetTitle("iphi");
+      gr_iphi->GetYaxis()->SetTitle("LED scan time (ns) for TDC=01 peak");
+    }
+    c_PeakDelay01_overlay->SaveAs("PeakDelay01_depth.pdf");
+  }
+
+  TCanvas *c_PeakDelay01_ieta = new TCanvas("c_PeakDelay01_ieta","",1600,1200);
+  for (int iPhi = 0; iPhi < 8; iPhi++) {
+    c_PeakDelay01_ieta->Clear();
+    c_PeakDelay01_ieta->Divide(2,2);
+    TString iphi = Form("%d",iPhi+1);
+    for (int Depth = 1; Depth < 5; Depth ++) {
+      TString depth = Form("%d",Depth);
+      c_PeakDelay01_ieta->cd(Depth);
+      TGraph *gr_ieta = (TGraph*) f->Get("PeakDelay01_Depth"+depth+"_iPhi"+iphi);
+      gr_ieta->GetHistogram()->SetMaximum(42.);
+      gr_ieta->GetHistogram()->SetMinimum(15.);
+      gr_ieta->Draw();
+      gr_ieta->SetTitle("LED scan time (ns) when peak TDC=01 occurs vs. iEta (iphi="+iphi+", depth="+depth+")");
+      gr_ieta->GetXaxis()->SetTitle("iEta");
+      gr_ieta->GetYaxis()->SetTitle("LED scan time (ns) for TDC=01 peak");
+    }
+    c_PeakDelay01_ieta->SaveAs("PeakDelay01_iphi"+iphi+"_depth.pdf");
   }
 
   for (int Depth = 1; Depth < 5; Depth ++) {
