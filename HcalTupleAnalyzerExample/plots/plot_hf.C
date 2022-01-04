@@ -60,22 +60,22 @@ int plot_hf() {
       c_ADC_Ratio->cd(1);
       TH2D *h = (TH2D*) f->Get("ADC3_ADC4_Ratio_"+Percent+"per_00_depth"+Depth+"_ieta1");
       h->Draw("COLZ");
-      h->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs ns of TDC=00 peak in LED delay scan, depth "+Depth);
-      h->GetXaxis()->SetTitle("ns of TDC=00 peak");
+      h->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs TDC=00 peak time (1/2ns) in LED delay scan, depth "+Depth);
+      h->GetXaxis()->SetTitle("1/2ns of TDC=00 peak");
       h->GetYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4)");
       gPad->SetLogz();    
       c_ADC_Ratio->cd(2);
       TH2D *h1 = (TH2D*) f->Get("ADC3_ADC4_Ratio_"+Percent+"per_01_depth"+Depth+"_ieta1");
       h1->Draw("COLZ");
-      h1->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs ns of TDC=01 peak in LED delay scan, depth "+Depth);
-      h1->GetXaxis()->SetTitle("ns of TDC=01 peak");
+      h1->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs TDC=01 peak time (1/2ns) in LED delay scan, depth "+Depth);
+      h1->GetXaxis()->SetTitle("1/2ns of TDC=01 peak");
       h1->GetYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4)");
       gPad->SetLogz();    
       c_ADC_Ratio->cd(3);
       TH2D *h2 = (TH2D*) f->Get("ADC3_ADC4_Ratio_"+Percent+"per_10_depth"+Depth+"_ieta1");
       h2->Draw("COLZ");
-      h2->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs ns of TDC=10 peak in LED delay scan, depth "+Depth);
-      h2->GetXaxis()->SetTitle("ns of TDC=10 peak");
+      h2->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs TDC=10 peak time (1/2ns) in LED delay scan, depth "+Depth);
+      h2->GetXaxis()->SetTitle("1/2ns of TDC=10 peak");
       h2->GetYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4)");
       gPad->SetLogz();
       c_ADC_Ratio->SaveAs("ADC_Ratio_depth"+Depth+"_"+Percent+"per.pdf");
@@ -89,8 +89,8 @@ int plot_hf() {
     c_ADC_Ratio->cd(depth);
     TH2D *h = (TH2D*) f->Get("ADC3_ADC4_Ratio_80per_01_depth"+Depth+"_ieta1");
     h->Draw("COLZ");
-    h->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs ns of TDC=01 peak in LED delay scan, depth "+Depth);
-    h->GetXaxis()->SetTitle("ns of TDC=01 peak");
+    h->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs TDC=01 peak time (1/2ns) in LED delay scan, depth "+Depth);
+    h->GetXaxis()->SetTitle("1/2ns of TDC=01 peak");
     h->GetYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4)");
     h->GetYaxis()->SetRangeUser(-0.15,0.05);
     gPad->SetLogz();
@@ -112,7 +112,7 @@ int plot_hf() {
   TGraph *gr111 = (TGraph*) f->Get("Percent_Delay3_iphi1_depth1");
   gr111->Draw();
   gr111->SetTitle("% TDC Codes 01 vs. LED Delay Scan (ieta,iphi,depth=1)");
-  gr111->GetXaxis()->SetTitle("LED Delay Scan in ns");
+  gr111->GetXaxis()->SetTitle("LED Delay Scan in 1/2ns");
   gr111->GetYaxis()->SetTitle("Percent TDC code 01 (delay1 in TS4)");
   c_Percent_LEDdelay_ieta1iphi1depth1->SaveAs("Percent_LEDdelay_111.pdf");
 
@@ -137,9 +137,9 @@ int plot_hf() {
       gr_iphi->GetHistogram()->SetMaximum(42.);
       gr_iphi->GetHistogram()->SetMinimum(15.);
       gr_iphi->Draw();
-      gr_iphi->SetTitle("LED scan time (ns) when peak TDC=01 occurs vs. iphi (ieta="+ieta+", depth="+depth+")");
+      gr_iphi->SetTitle("LED scan time (1/2ns) when peak TDC=01 occurs vs. iphi (ieta="+ieta+", depth="+depth+")");
       gr_iphi->GetXaxis()->SetTitle("iphi");
-      gr_iphi->GetYaxis()->SetTitle("LED scan time (ns) for TDC=01 peak");
+      gr_iphi->GetYaxis()->SetTitle("LED scan time (1/2ns steps) for TDC=01 peak");
     }
     c_PeakDelay01_depth->SaveAs("PeakDelay01_ieta"+ieta+"_depth.pdf");
     for (int Depth = 1; Depth < 5; Depth ++) {
@@ -150,9 +150,9 @@ int plot_hf() {
       gr_iphi->GetHistogram()->SetMinimum(15.);
       gr_iphi->SetLineColor(kRainBow + iEta*2.6);
       gr_iphi->Draw();
-      gr_iphi->SetTitle("LED scan time (ns) when peak TDC=01 occurs vs. iphi (ieta=all, depth="+depth+")");
+      gr_iphi->SetTitle("LED scan time (1/2ns) when peak TDC=01 occurs vs. iphi (ieta=all, depth="+depth+")");
       gr_iphi->GetXaxis()->SetTitle("iphi");
-      gr_iphi->GetYaxis()->SetTitle("LED scan time (ns) for TDC=01 peak");
+      gr_iphi->GetYaxis()->SetTitle("LED scan time (1/2ns steps) for TDC=01 peak");
     }
     c_PeakDelay01_overlay->SaveAs("PeakDelay01_depth.pdf");
   }
@@ -169,9 +169,9 @@ int plot_hf() {
       gr_ieta->GetHistogram()->SetMaximum(42.);
       gr_ieta->GetHistogram()->SetMinimum(15.);
       gr_ieta->Draw();
-      gr_ieta->SetTitle("LED scan time (ns) when peak TDC=01 occurs vs. iEta (iphi="+iphi+", depth="+depth+")");
+      gr_ieta->SetTitle("LED scan time (1/2ns) when peak TDC=01 occurs vs. iEta (iphi="+iphi+", depth="+depth+")");
       gr_ieta->GetXaxis()->SetTitle("iEta");
-      gr_ieta->GetYaxis()->SetTitle("LED scan time (ns) for TDC=01 peak");
+      gr_ieta->GetYaxis()->SetTitle("LED scan time (1/2ns steps) for TDC=01 peak");
     }
     c_PeakDelay01_ieta->SaveAs("PeakDelay01_iphi"+iphi+"_depth.pdf");
   }
@@ -187,7 +187,7 @@ int plot_hf() {
       TGraph *gr = (TGraph*) f->Get("Percent_Delay"+tdc+"_depth"+depth);
       gr->Draw();
       gr->SetTitle("Percent TDC Code "+tdc_corr+" vs. LED Delay Scan at depth "+depth);
-      gr->GetXaxis()->SetTitle("LED Delay Scan in ns");
+      gr->GetXaxis()->SetTitle("LED Delay Scan in 1/2ns steps");
       gr->GetYaxis()->SetTitle("Percent TDC code");
     }
     c_PercentAll_LEDdelay->SaveAs("PercentAll_LEDdelay_depth"+depth+".pdf");
@@ -196,14 +196,14 @@ int plot_hf() {
     TGraphErrors *gre = (TGraphErrors*) f->Get("TDC_LEDdelay_depth"+depth);
     gre->Draw();
     gre->SetTitle("TDC code vs LED delay in ieta = 1, depth = "+depth);
-    gre->GetXaxis()->SetTitle("LED delay scan in ns");
+    gre->GetXaxis()->SetTitle("LED delay scan in 1/2ns steps");
     gre->GetYaxis()->SetTitle("-1 = TS3 code 10; 0,1,2 = TS4 code 00,01,10");
 
     c_TDC_LEDdelay_depth_ns->cd(Depth);
     TGraphErrors *gre_ns = (TGraphErrors*) f->Get("TDC_LEDdelay_ns_depth"+depth);
     gre_ns->Draw();
-    gre_ns->SetTitle("Average TDC (ns) of code vs. LED Delay Scan (ns) in ieta=1, depth="+depth);
-    gre_ns->GetXaxis()->SetTitle("LED delay scan in ns");
+    gre_ns->SetTitle("Average TDC (ns) of code vs. LED Delay Scan (1/2ns) in ieta=1, depth="+depth);
+    gre_ns->GetXaxis()->SetTitle("LED delay scan in 1/2ns steps");
     gre_ns->GetYaxis()->SetTitle("Average ns of TDC code");
 
     TCanvas *c_Percent_Delay3_Depth_iphi =new TCanvas("c_Percent_Delay3_Depth_iphi","",1600,1500);
@@ -214,7 +214,7 @@ int plot_hf() {
       TGraph *gr = (TGraph*) f->Get("Percent_Delay3_iphi"+iPhi+"_depth"+depth);
       gr->Draw();
       gr->SetTitle("Percent TDC Code 01 vs. LED Delay Scan, iphi="+iPhi);
-      gr->GetXaxis()->SetTitle("LED Delay Scan in ns");
+      gr->GetXaxis()->SetTitle("LED Delay Scan in 1/2ns steps");
       gr->GetYaxis()->SetTitle("Percent 01 TDC code");
     }
     c_Percent_Delay3_Depth_iphi->SaveAs("Percent01_LEDdelay_Depth"+depth+"_byiPhi.pdf");
