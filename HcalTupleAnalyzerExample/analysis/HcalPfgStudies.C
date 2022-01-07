@@ -91,7 +91,7 @@ void HcalPfgStudies::Loop()
       std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
       power++;
     }
-    //    if ((jentry+1) % 10 != 0) continue;
+    if ((jentry+1) % 10 != 0) continue;
     
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
       // cout << "HF channel " << "(" << QIE11DigiIEta->at(ch) << ", " << QIE11DigiIPhi->at(ch) << ", " << QIE11DigiDepth->at(ch) << ")" << endl;
@@ -322,15 +322,10 @@ void HcalPfgStudies::Loop()
       for (int iphi = 0; iphi < iPhi; iphi++) peakDelayed01_float[depth][ieta][iphi] = peakDelayed01[depth][ieta][iphi];
     }
   }
-  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4_00_70per;
-  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4_01_70per;
-  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4_10_70per;
-  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4_00_80per;
-  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4_01_80per;
-  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4_10_80per;
-  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4_00_90per;
-  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4_01_90per;
-  std::map<int, std::map<int, TH2F*>> Ratio_ADC3_4_10_90per;
+
+  std::map<int, std::map<int, std::map<int, std::map<int, TH2F*>>>> Ratio_ADC3_4_00; // [%] [depth] [ieta] [iphi mod 4]
+  std::map<int, std::map<int, std::map<int, std::map<int, TH2F*>>>> Ratio_ADC3_4_01;
+  std::map<int, std::map<int, std::map<int, std::map<int, TH2F*>>>> Ratio_ADC3_4_10;
 
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     Long64_t ientry = LoadTree(jentry);
@@ -338,7 +333,7 @@ void HcalPfgStudies::Loop()
     nb = fChain->GetEntry(jentry);   nbytes += nb;
     // if (Cut(ientry) < 0) continue;
     if (((jentry+1) % 100) == 0) std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
-    //    if ((jentry+1) % 10 != 0) continue;
+    if ((jentry+1) % 10 != 0) continue;
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
       int ch_ieta = QIE11DigiIEta->at(ch);
       int ch_iphi = QIE11DigiIPhi->at(ch);
@@ -347,46 +342,37 @@ void HcalPfgStudies::Loop()
 	float ADC3 = QIE11DigiADC->at(ch).at(3);
 	float ADC4 = QIE11DigiADC->at(ch).at(4);
 
-	// slighly delayed
-	if (PercentTDC3_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] > 0.7) { // PercentTDC3 is the percent of cells in that ns scan that have delay 01, plot energy ratio when this percent is over 90%
-	  //	if (peakDelayed01[ch_depth-1][ch_ieta-1][ch_iphi-1] == (jentry / nsSpacing) + nsStart) { // this is to find the ns of the 01 peak, and plot energy ratio here
-	  if (Ratio_ADC3_4_01_70per[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4_01_70per[ch_depth-1].end()) Ratio_ADC3_4_01_70per[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_70per_01_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC3 - ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=01 peak (70, ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,nsStart,nsScan,110,-1,0.1); //-0.1,0.05);//,0.48,0.56);
-	  Ratio_ADC3_4_01_70per[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4));
-	}
-	
 	if (ch_ieta == 1) {
-	  // very delayed
-	  if (Ratio_ADC3_4_10_70per[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4_10_70per[ch_depth-1].end()) Ratio_ADC3_4_10_70per[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_70per_10_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC3 - ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=10 peak (70, ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,nsStart,nsScan,110,-1,0.1);
-          if (Ratio_ADC3_4_10_80per[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4_10_80per[ch_depth-1].end()) Ratio_ADC3_4_10_80per[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_80per_10_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC3 - ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=10 peak (80, ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,nsStart,nsScan,110,-1,0.1);
-          if (Ratio_ADC3_4_10_90per[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4_10_90per[ch_depth-1].end()) Ratio_ADC3_4_10_90per[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_90per_10_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC3 - ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=10 peak (90, ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,nsStart,nsScan,110,-1,0.1);
-	  if (PercentTDC4_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] > 0.7)
-	    Ratio_ADC3_4_10_70per[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4));
-          if (PercentTDC4_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] > 0.8)
-            Ratio_ADC3_4_10_80per[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4));         
-	  if (PercentTDC4_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] > 0.9)
-	    Ratio_ADC3_4_10_90per[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4));
-	  
-	  // slightly delayed 
-	  if (Ratio_ADC3_4_01_80per[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4_01_80per[ch_depth-1].end()) Ratio_ADC3_4_01_80per[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_80per_01_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC3 - ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=01 peak (80, ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,nsStart,nsScan,101,-1,0.1);
-          if (Ratio_ADC3_4_01_90per[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4_01_90per[ch_depth-1].end()) Ratio_ADC3_4_01_90per[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_90per_01_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC3 - ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=01 peak (90, ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,nsStart,nsScan,101,-1,0.1);
-          if (PercentTDC3_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] > 0.8)
-            Ratio_ADC3_4_01_80per[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4));
-          if (PercentTDC3_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] > 0.9)
-            Ratio_ADC3_4_01_90per[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4));
-	  
-	  // prompt
-	  if (Ratio_ADC3_4_00_70per[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4_00_70per[ch_depth-1].end()) Ratio_ADC3_4_00_70per[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_70per_00_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC3 - ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=00 peak (70, ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,nsStart,nsScan,110,-1,0.1);
-	  if (Ratio_ADC3_4_00_80per[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4_00_80per[ch_depth-1].end()) Ratio_ADC3_4_00_80per[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_80per_00_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC3 - ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=00 peak (80, ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,nsStart,nsScan,110,-1,0.1);
-	  if (Ratio_ADC3_4_00_90per[ch_depth-1].find(ch_ieta-1) == Ratio_ADC3_4_00_90per[ch_depth-1].end()) Ratio_ADC3_4_00_90per[ch_depth-1][ch_ieta-1] = new TH2F(Form("ADC3_ADC4_Ratio_90per_00_depth%d_ieta%d",ch_depth,ch_ieta),Form("ADC3 - ADC4 / ADC3 + ADC4 ratio vs ns delay of TDC=00 peak (90, ieta=%d, depth=%d, all iphi)",ch_ieta, ch_depth),nsScan-nsStart,nsStart,nsScan,110,-1,0.1);
-	  if (PercentTDC2_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] > 0.7)
-	    Ratio_ADC3_4_00_70per[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4));
-	  if (PercentTDC2_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] > 0.8) 
-	    Ratio_ADC3_4_00_80per[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4));
-	  if (PercentTDC2_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] > 0.9) 
-	    Ratio_ADC3_4_00_90per[ch_depth-1][ch_ieta-1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4));	 
+
+	  for (int percent = 7; percent < 10; percent++) {
+	    if (Ratio_ADC3_4_00[percent-7][ch_depth-1][ch_ieta-1].find(0) == Ratio_ADC3_4_00[percent-7][ch_depth-1][ch_ieta-1].end()) {
+	      Ratio_ADC3_4_00[percent-7][ch_depth-1][ch_ieta-1][0] = new TH2F(Form("ADC3_ADC4_RM12_Ratio_%d0per_00_depth%d_ieta%d", percent, ch_depth, ch_ieta), Form("ADC3 - ADC4 / ADC3 + ADC4 (RM12) ratio vs delay of TDC=00 peak (%d0, ieta%d, depth%d, all iphi)", percent, ch_ieta, ch_depth), nsScan-nsStart, nsStart, nsScan, 110, -1, 0.1);
+	      Ratio_ADC3_4_00[percent-7][ch_depth-1][ch_ieta-1][1] = new TH2F(Form("ADC3_ADC4_RM34_Ratio_%d0per_00_depth%d_ieta%d", percent, ch_depth, ch_ieta), Form("ADC3 - ADC4 / ADC3 + ADC4 (RM34) ratio vs delay of TDC=00 peak (%d0, ieta%d, depth%d, all iphi)", percent, ch_ieta, ch_depth), nsScan-nsStart, nsStart, nsScan, 110, -1, 0.1);
+	    }
+	    if (Ratio_ADC3_4_01[percent-7][ch_depth-1][ch_ieta-1].find(0) == Ratio_ADC3_4_01[percent-7][ch_depth-1][ch_ieta-1].end()) {
+	      Ratio_ADC3_4_01[percent-7][ch_depth-1][ch_ieta-1][0] = new TH2F(Form("ADC3_ADC4_RM12_Ratio_%d0per_01_depth%d_ieta%d", percent, ch_depth, ch_ieta), Form("ADC3 - ADC4 / ADC3 + ADC4 (RM12) ratio vs delay of TDC=01 peak (%d0, ieta%d, depth%d, all iphi)", percent, ch_ieta, ch_depth), nsScan-nsStart, nsStart, nsScan, 110, -1, 0.1);
+              Ratio_ADC3_4_01[percent-7][ch_depth-1][ch_ieta-1][1] = new TH2F(Form("ADC3_ADC4_RM34_Ratio_%d0per_01_depth%d_ieta%d", percent, ch_depth, ch_ieta), Form("ADC3 - ADC4 / ADC3 + ADC4 (RM34) ratio vs delay of TDC=01 peak (%d0, ieta%d, depth%d, all iphi)", percent, ch_ieta, ch_depth), nsScan-nsStart, nsStart, nsScan, 110, -1, 0.1);
+	    }
+	    if (Ratio_ADC3_4_10[percent-7][ch_depth-1][ch_ieta-1].find(0) == Ratio_ADC3_4_10[percent-7][ch_depth-1][ch_ieta-1].end()) {
+              Ratio_ADC3_4_10[percent-7][ch_depth-1][ch_ieta-1][0] = new TH2F(Form("ADC3_ADC4_RM12_Ratio_%d0per_10_depth%d_ieta%d", percent, ch_depth, ch_ieta), Form("ADC3 - ADC4 / ADC3 + ADC4 (RM12) ratio vs delay of TDC=10 peak (%d0, ieta%d, depth%d, all iphi)", percent, ch_ieta, ch_depth), nsScan-nsStart, nsStart, nsScan, 110, -1, 0.1);
+              Ratio_ADC3_4_10[percent-7][ch_depth-1][ch_ieta-1][1] = new TH2F(Form("ADC3_ADC4_RM34_Ratio_%d0per_10_depth%d_ieta%d", percent, ch_depth, ch_ieta), Form("ADC3 - ADC4 / ADC3 + ADC4 (RM34) ratio vs delay of TDC=10 peak (%d0, ieta%d, depth%d, all iphi)", percent, ch_ieta, ch_depth), nsScan-nsStart, nsStart, nsScan, 110, -1, 0.1);
+            }
+	    if (PercentTDC2_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] * 10 > percent) { // prompt
+              if (ch_iphi%4 == 3 || ch_iphi%4 == 0) Ratio_ADC3_4_00[percent-7][ch_depth-1][ch_ieta-1][0]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4)); // RM1,2
+	      if (ch_iphi%4 == 1 || ch_iphi%4 == 2) Ratio_ADC3_4_00[percent-7][ch_depth-1][ch_ieta-1][1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4)); // RM3,4
+	    }
+            if (PercentTDC3_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] * 10 > percent) { // slightly delayed
+              if (ch_iphi%4 == 3 || ch_iphi%4 == 0) Ratio_ADC3_4_01[percent-7][ch_depth-1][ch_ieta-1][0]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4)); // RM1,2 
+	      if (ch_iphi%4 == 1 || ch_iphi%4 == 2) Ratio_ADC3_4_01[percent-7][ch_depth-1][ch_ieta-1][1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4)); // RM3,4
+	    }
+            if (PercentTDC4_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] * 10 > percent) { // very delayed
+              if (ch_iphi%4 == 3 || ch_iphi%4 == 0) Ratio_ADC3_4_10[percent-7][ch_depth-1][ch_ieta-1][0]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4)); // RM1,2
+              if (ch_iphi%4 == 1 || ch_iphi%4 == 2) Ratio_ADC3_4_10[percent-7][ch_depth-1][ch_ieta-1][1]->Fill((jentry / nsSpacing) + nsStart, (ADC3 - ADC4) / (ADC3 + ADC4)); // RM3,4
+            }
+	  } // percent 70-90% 
 	} // ieta = 1 selection
-      } 
-    }
+      } // ieta loop
+    } // channel loop
   }
   
   // output file for histograms
@@ -398,15 +384,11 @@ void HcalPfgStudies::Loop()
     for (std::map<int,TGraph*>::iterator it = PeakDelay01[depth].begin() ; it != PeakDelay01[depth].end(); ++it) it->second->Write();
     for (std::map<int,TGraph*>::iterator it = PeakDelay01_ieta[depth].begin() ; it != PeakDelay01_ieta[depth].end(); ++it) it->second->Write();
     for (std::map<int,TGraph*>::iterator it = PercentDelay3_iphi[depth].begin() ; it != PercentDelay3_iphi[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_00_70per[depth].begin(); it != Ratio_ADC3_4_00_70per[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_01_70per[depth].begin(); it != Ratio_ADC3_4_01_70per[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_10_70per[depth].begin(); it != Ratio_ADC3_4_10_70per[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_00_80per[depth].begin(); it != Ratio_ADC3_4_00_80per[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_01_80per[depth].begin(); it != Ratio_ADC3_4_01_80per[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_10_80per[depth].begin(); it != Ratio_ADC3_4_10_80per[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_00_90per[depth].begin(); it != Ratio_ADC3_4_00_90per[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_01_90per[depth].begin(); it != Ratio_ADC3_4_01_90per[depth].end(); ++it) it->second->Write();
-    for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_10_90per[depth].begin(); it != Ratio_ADC3_4_10_90per[depth].end(); ++it) it->second->Write();
+    for (int percent = 0; percent < 3; percent++) {
+      for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_00[percent][depth][0].begin(); it != Ratio_ADC3_4_00[percent][depth][0].end(); ++it) it->second->Write();
+      for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_01[percent][depth][0].begin(); it != Ratio_ADC3_4_01[percent][depth][0].end(); ++it) it->second->Write();
+      for (std::map<int,TH2F*>::iterator it = Ratio_ADC3_4_10[percent][depth][0].begin(); it != Ratio_ADC3_4_10[percent][depth][0].end(); ++it) it->second->Write();
+    }
   }
   for (std::map<int,TGraphErrors*>::iterator it = TDC_LEDdelay_depth.begin() ; it != TDC_LEDdelay_depth.end(); ++it) it->second->Write();
   for (std::map<int,TGraphErrors*>::iterator it = TDC_LEDdelay_ns_depth.begin() ; it != TDC_LEDdelay_ns_depth.end(); ++it) it->second->Write();
