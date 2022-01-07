@@ -56,8 +56,10 @@ int plot_hf() {
     for (int depth = 1; depth < 5; depth++) {
       TCanvas *c_ADC_Ratio_RM12 = new TCanvas("c_ADC_Ratio_RM12","",2400,600);
       TCanvas *c_ADC_Ratio_RM34 = new TCanvas("c_ADC_Ratio_RM34","",2400,600);
+
       c_ADC_Ratio_RM12->Divide(3,1);
       c_ADC_Ratio_RM34->Divide(3,1);
+
       TString Depth = Form("%d",depth);
       for (int TDCslice = 0; TDCslice < 3; TDCslice++) {
 	TString binary = std::bitset<2>(TDCslice).to_string();
@@ -77,6 +79,7 @@ int plot_hf() {
         h2->GetXaxis()->SetTitle("1/2ns of TDC="+binary+" peak");
         h2->GetYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4)");
         gPad->SetLogz();
+
       } // TDC binary
       c_ADC_Ratio_RM12->SaveAs("ADC_Ratio_RM12_depth"+Depth+"_"+Percent+"per.pdf");
       c_ADC_Ratio_RM34->SaveAs("ADC_Ratio_RM34_depth"+Depth+"_"+Percent+"per.pdf");
