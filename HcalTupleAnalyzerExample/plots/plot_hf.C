@@ -83,23 +83,41 @@ int plot_hf() {
       } // TDC binary
       c_ADC_Ratio_RM12->SaveAs("ADC_Ratio_RM12_depth"+Depth+"_"+Percent+"per.pdf");
       c_ADC_Ratio_RM34->SaveAs("ADC_Ratio_RM34_depth"+Depth+"_"+Percent+"per.pdf");
+      c_ADC_Ratio_RM12->Clear();
+      c_ADC_Ratio_RM34->Clear();
     }
   }
 
-  TCanvas *c_ADC_Ratio = new TCanvas("c_ADC_Ratio","",1600,1200);
-  c_ADC_Ratio->Divide(2,2);
-  for (int depth = 1; depth < 5; depth++) {
-    TString Depth = Form("%d",depth);
-    c_ADC_Ratio->cd(depth);
-    TH2D *h = (TH2D*) f->Get("ADC3_ADC4_RM12_Ratio_80per_01_depth"+Depth+"_ieta1");
-    h->Draw("COLZ");
-    h->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs TDC=01 peak time (1/2ns) in LED delay scan, depth "+Depth);
-    h->GetXaxis()->SetTitle("1/2ns of TDC=01 peak");
-    h->GetYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4)");
-    h->GetYaxis()->SetRangeUser(-0.15,0.05);
-    gPad->SetLogz();
+  for (int rm = 12; rm<=34; rm+=22) {
+    TString RM = Form("%d",rm);
+    TCanvas *c_ADC_Ratio = new TCanvas("c_ADC_Ratio","",1600,1200);
+    TCanvas *c_TDC_LUT = new TCanvas("C_TDC_LUT","",1600,1200);
+    c_ADC_Ratio->Divide(2,2);
+    c_TDC_LUT->Divide(2,2);
+    for (int depth = 1; depth < 5; depth++) {
+      TString Depth = Form("%d",depth);
+      c_ADC_Ratio->cd(depth);
+      TH2D *h = (TH2D*) f->Get("ADC3_ADC4_RM"+RM+"_Ratio_80per_01_depth"+Depth+"_ieta1");
+      h->Draw("COLZ");
+      h->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs TDC=01 peak time (1/2ns) in LED delay scan, depth "+Depth+" RM"+RM);
+      h->GetXaxis()->SetTitle("1/2ns of TDC=01 peak");
+      h->GetYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4)");
+      h->GetYaxis()->SetRangeUser(-0.15,0.05);
+      gPad->SetLogz();
+      c_TDC_LUT->cd(depth);
+      TH2D *h2 = (TH2D*) f->Get("LUT_time_RM"+RM+"_80per_01_depth"+Depth);
+      h2->Draw("COLZ");
+      h2->SetTitle("LUT time (1/2 ns) vs TDC=01 peak time (1/2ns) in LED delay scan, depth "+Depth+" RM"+RM);
+      h2->GetXaxis()->SetTitle("1/2ns of TDC=01 peak");
+      h2->GetYaxis()->SetTitle("LUT time (1/2 ns) of TDC=01 bin");
+      h2->GetYaxis()->SetRangeUser(0,20);
+      gPad->SetLogz();
+    }
+    c_ADC_Ratio->SaveAs("ADC_Ratio_RM"+RM+".pdf");    
+    c_TDC_LUT->SaveAs("TDC_LUT_RM"+RM+".pdf");
+    c_ADC_Ratio->Clear();
+    c_TDC_LUT->Clear();
   }
-  c_ADC_Ratio->SaveAs("ADC_Ratio.pdf");    
   /*
   TCanvas *c_Percent_LEDdelay = new TCanvas("c_Percent_LEDdelay","",1600,1200);
   c_Percent_LEDdelay->cd();
@@ -222,6 +240,7 @@ int plot_hf() {
       gr->GetYaxis()->SetTitle("Percent 01 TDC code");
     }
     c_Percent_Delay3_Depth_iphi->SaveAs("Percent01_LEDdelay_Depth"+depth+"_byiPhi.pdf");
+    c_Percent_Delay3_Depth_iphi->Clear();
   }
   c_TDC_LEDdelay_depth->SaveAs("TDC_LED_depth.pdf");
   c_TDC_LEDdelay_depth_ns->SaveAs("TDC_LED_depth_ns.pdf");
