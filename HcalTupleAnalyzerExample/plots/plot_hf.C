@@ -88,6 +88,21 @@ int plot_hf() {
     }
   }
 
+  TCanvas *c_ADC_Ratio_TS10 = new TCanvas("c_ADC_ratio_RS10","",1600,1200);
+  c_ADC_Ratio_TS10->Divide(2,2);
+  for (int depth = 1; depth < 5; depth++) {
+    TString Depth = Form("%d",depth);
+    c_ADC_Ratio_TS10->cd(depth);
+    TH2D *h = (TH2D*) f->Get("ADC3_ADC4_RM12_Ratio_90per_10_depth"+Depth+"_ieta1");
+    h->Draw("COLZ");
+    h->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs TDC=10 peak time (1/2ns) in LED delay scan, depth "+Depth);
+    h->GetXaxis()->SetTitle("1/2ns of TDC=10 peak");
+    h->GetYaxis()->SetRangeUser(-0.25, -0.2);
+    h->GetYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4)");
+    gPad->SetLogz();
+  }
+  c_ADC_Ratio_TS10->SaveAs("ADC_Ratio_RM12_TS10_zoom.pdf");
+
   for (int rm = 12; rm<=34; rm+=22) {
     TString RM = Form("%d",rm);
     TCanvas *c_ADC_Ratio = new TCanvas("c_ADC_Ratio","",1600,1200);
