@@ -88,20 +88,44 @@ int plot_hf() {
     }
   }
 
-  TCanvas *c_ADC_Ratio_TS10 = new TCanvas("c_ADC_ratio_RS10","",1600,1200);
-  c_ADC_Ratio_TS10->Divide(2,2);
+  TCanvas *c_ADC_TDC_time = new TCanvas("c_ADC_TDC_time","",1600,1200);
+  c_ADC_TDC_time->Divide(2,2);
+  TCanvas *c_ADC_TDC_time2 = new TCanvas("c_ADC_TDC_time2","",1600,1200);
+  c_ADC_TDC_time2->Divide(2,2);
+  TCanvas *c_ADC_TDC_time_allIphi = new TCanvas("c_ADC_TDC_time_allIphi","",2600,1200);
+  c_ADC_TDC_time_allIphi->Divide(2,2);
   for (int depth = 1; depth < 5; depth++) {
     TString Depth = Form("%d",depth);
-    c_ADC_Ratio_TS10->cd(depth);
-    TH2D *h = (TH2D*) f->Get("ADC3_ADC4_RM12_Ratio_90per_10_depth"+Depth+"_ieta1");
+    c_ADC_TDC_time->cd(depth);
+    TH2D *h = (TH2D*) f->Get("ADC_TDC_time_12RM_depth"+Depth);
     h->Draw("COLZ");
-    h->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio vs TDC=10 peak time (1/2ns) in LED delay scan, depth "+Depth);
-    h->GetXaxis()->SetTitle("1/2ns of TDC=10 peak");
-    h->GetYaxis()->SetRangeUser(-0.25, -0.2);
-    h->GetYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4)");
+    h->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio = -0.2 Time vs TDC=01 peak time in LED delay scan, depth "+Depth);
+    h->GetXaxis()->SetRangeUser(15, 50);
+    h->GetXaxis()->SetTitle("Time of TDC=10 peak");
+    h->GetYaxis()->SetRangeUser(30, 60);
+    h->GetYaxis()->SetTitle("Time of (ADC3 - ADC4) / (ADC3 + ADC4) = -0.2");
+    gPad->SetLogz();
+    c_ADC_TDC_time2->cd(depth);
+    TH2D *h2 = (TH2D*) f->Get("ADC_TDC_time_34RM_depth"+Depth);
+    h2->Draw("COLZ");
+    h2->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio = -0.2 Time vs TDC=01 peak time in LED delay scan, depth "+Depth);
+    h2->GetXaxis()->SetRangeUser(15, 50);
+    h2->GetXaxis()->SetTitle("Time of TDC=10 peak");
+    h2->GetYaxis()->SetRangeUser(30, 60);
+    h2->GetYaxis()->SetTitle("Time of (ADC3 - ADC4) / (ADC3 + ADC4) = -0.2");
+    gPad->SetLogz();
+    TH2D * h3 = (TH2D*) f->Get("ADC_TDC_timeLED_allIphi_depth"+Depth);
+    h3->Draw("COLZ");
+    h3->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) ratio = -0.2 Time vs TDC=01 peak time in LED delay scan, depth "+Depth);
+    h3->GetXaxis()->SetRangeUser(15, 50);
+    h3->GetXaxis()->SetTitle("Time of TDC=10 peak");
+    h3->GetYaxis()->SetRangeUser(30, 60);
+    h3->GetYaxis()->SetTitle("Time of (ADC3 - ADC4) / (ADC3 + ADC4) = -0.2");
     gPad->SetLogz();
   }
-  c_ADC_Ratio_TS10->SaveAs("ADC_Ratio_RM12_TS10_zoom.pdf");
+  c_ADC_TDC_time->SaveAs("ADC_TDC_time_correlation_RM12.pdf");
+  c_ADC_TDC_time2->SaveAs("ADC_TDC_time_correlation_RM34.pdf");
+  c_ADC_TDC_time_allIphi->SaveAs("ADC_TDC_time_correlation_all.pdf");
 
   for (int rm = 12; rm<=34; rm+=22) {
     TString RM = Form("%d",rm);
