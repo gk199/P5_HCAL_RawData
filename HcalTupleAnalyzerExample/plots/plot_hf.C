@@ -21,7 +21,7 @@ int plot_hf() {
     h->GetXaxis()->SetRangeUser(0,150);
     gPad->SetLogy();
   }
-  c_adc->SaveAs("hf_adc_all_channels.pdf");
+  //  c_adc->SaveAs("hf_adc_all_channels.pdf");
 
   TCanvas *c_tdc = new TCanvas("c_tdc","",1600,800);
   c_tdc->Divide(2,1);
@@ -35,7 +35,7 @@ int plot_hf() {
     h->GetXaxis()->SetRangeUser(0,150);
     gPad->SetLogy();
   }
-  c_tdc->SaveAs("hf_tdc_all_channels.pdf");
+  //  c_tdc->SaveAs("hf_tdc_all_channels.pdf");
 
   TCanvas *c_tdc_ieta = new TCanvas("c_tdc_ieta","",1600,1600);
   c_tdc_ieta->Divide(4,4);
@@ -49,13 +49,15 @@ int plot_hf() {
     h->GetYaxis()->SetTitle("TS3 (11,10), TS4 (00, 01, 10, 11)");
     gPad->SetLogz();
   }
-  c_tdc_ieta->SaveAs("hf_tdc_ieta.pdf");
+  //  c_tdc_ieta->SaveAs("hb_tdc_ieta.pdf");
 
+  TCanvas *c_ADC_Ratio_RM12 = new TCanvas("c_ADC_Ratio_RM12","",2400,600);
+  TCanvas *c_ADC_Ratio_RM34 = new TCanvas("c_ADC_Ratio_RM34","",2400,600);
   for (int percent = 70; percent < 100; percent+= 10) {
     TString Percent = Form("%d",percent);
     for (int depth = 1; depth < 5; depth++) {
-      TCanvas *c_ADC_Ratio_RM12 = new TCanvas("c_ADC_Ratio_RM12","",2400,600);
-      TCanvas *c_ADC_Ratio_RM34 = new TCanvas("c_ADC_Ratio_RM34","",2400,600);
+      c_ADC_Ratio_RM12->Clear();
+      c_ADC_Ratio_RM34->Clear();
 
       c_ADC_Ratio_RM12->Divide(3,1);
       c_ADC_Ratio_RM34->Divide(3,1);
@@ -129,21 +131,38 @@ int plot_hf() {
   c_ADC_TDC_time_allIphi->SaveAs("ADC_TDC_time_correlation_all.pdf");
 
   TCanvas *c_ADC_TDC_time_profile = new TCanvas("c_ADC_TDC_time_profile","",1600,1200);
-  TProfile *prof = (TProfile*) f->Get("ADC_TDC_timeLED_profile_depth1");
-  prof->Fit("pol1");
-  prof->GetXaxis()->SetTitle("Time of TDC=01 peak");
-  auto rp1 = new TRatioPlot(prof);
-  rp1->Draw();
-  rp1->GetLowerRefYaxis()->SetTitle("ratio");
-  rp1->GetUpperRefYaxis()->SetTitle("(ADC3 - ADC4) / (ADC3 + ADC4) = -0.2 Time");
-  gStyle->SetOptFit(1);
-  gStyle->SetOptStat(0);
-  c_ADC_TDC_time_profile->SaveAs("ADC_TDC_time_profile.pdf");
+  for (int depth = 1; depth < 5; depth++) {
+    TString Depth = Form("%d",depth);
+    TProfile *prof = (TProfile*) f->Get("ADC_TDC_timeLED_profile_depth"+Depth);
+    prof->Fit("pol1");
+    prof->GetXaxis()->SetTitle("Time of TDC=01 peak");
+    prof->GetYaxis()->SetRangeUser(30,60);
+    prof->GetXaxis()->SetRangeUser(15, 50);
+    c_ADC_TDC_time_profile->Clear();
+    gPad->Clear();
+    auto rp1 = new TRatioPlot(prof);
+    rp1->Draw();
+    rp1->GetLowerRefYaxis()->SetTitle("ratio");
+    rp1->GetUpperRefYaxis()->SetTitle("Time when ADC ratio = -0.2");
+    rp1->GetLowerRefYaxis()->SetLabelSize(0.035);
+    rp1->GetLowerRefXaxis()->SetLabelSize(0.035);
+    gStyle->SetStatY(0.5);  // Set y-position (fraction of pad size)
+    gStyle->SetStatX(0.9);                
+    gStyle->SetStatW(0.1);                
+    if (depth == 1) gStyle->SetStatH(0.055);
+    if (depth > 1) gStyle->SetStatH(0.15);
+    gStyle->SetOptFit(1);
+    gStyle->SetOptStat(0);
+    c_ADC_TDC_time_profile->Update();
+    c_ADC_TDC_time_profile->SaveAs("ADC_TDC_time_profile_depth"+Depth+".pdf");
+  }
 
+  TCanvas *c_ADC_Ratio = new TCanvas("c_ADC_Ratio","",1600,1200);
+  TCanvas *c_TDC_LUT = new TCanvas("C_TDC_LUT","",1600,1200);
   for (int rm = 12; rm<=34; rm+=22) {
     TString RM = Form("%d",rm);
-    TCanvas *c_ADC_Ratio = new TCanvas("c_ADC_Ratio","",1600,1200);
-    TCanvas *c_TDC_LUT = new TCanvas("C_TDC_LUT","",1600,1200);
+    c_ADC_Ratio->Clear();
+    c_TDC_LUT->Clear();
     c_ADC_Ratio->Divide(2,2);
     c_TDC_LUT->Divide(2,2);
     for (int depth = 1; depth < 5; depth++) {
@@ -165,21 +184,11 @@ int plot_hf() {
       h2->GetYaxis()->SetRangeUser(0,20);
       gPad->SetLogz();
     }
-    c_ADC_Ratio->SaveAs("ADC_Ratio_RM"+RM+".pdf");    
-    c_TDC_LUT->SaveAs("TDC_LUT_RM"+RM+".pdf");
+    //    c_ADC_Ratio->SaveAs("ADC_Ratio_RM"+RM+".pdf");    
+    //    c_TDC_LUT->SaveAs("TDC_LUT_RM"+RM+".pdf");
     c_ADC_Ratio->Clear();
     c_TDC_LUT->Clear();
   }
-  /*
-  TCanvas *c_Percent_LEDdelay = new TCanvas("c_Percent_LEDdelay","",1600,1200);
-  c_Percent_LEDdelay->cd();
-  TGraph *gr = (TGraph*) f->Get("Percent_Delay3");
-  gr->Draw();
-  gr->SetTitle("% TDC Codes 01 vs. LED Delay Scan");
-  gr->GetXaxis()->SetTitle("LED Delay Scan in ns");
-  gr->GetYaxis()->SetTitle("Percent TDC code 01 (delay1 in TS4)");
-  c_Percent_LEDdelay->SaveAs("Percent_LEDdelay.pdf");
-  */
 
   TCanvas *c_Percent_LEDdelay_ieta1iphi1depth1 = new TCanvas("c_Percent_LEDdelay_ieta1iphi1depth1","",1600,1200);
   c_Percent_LEDdelay_ieta1iphi1depth1->cd();
@@ -215,7 +224,7 @@ int plot_hf() {
       gr_iphi->GetXaxis()->SetTitle("iphi");
       gr_iphi->GetYaxis()->SetTitle("LED scan time (1/2ns steps) for TDC=01 peak");
     }
-    c_PeakDelay01_depth->SaveAs("PeakDelay01_ieta"+ieta+"_depth.pdf");
+    //    c_PeakDelay01_depth->SaveAs("PeakDelay01_ieta"+ieta+"_depth.pdf");
     for (int Depth = 1; Depth < 5; Depth ++) {
       TString depth = Form("%d",Depth);
       c_PeakDelay01_overlay->cd(Depth);
@@ -247,12 +256,14 @@ int plot_hf() {
       gr_ieta->GetXaxis()->SetTitle("iEta");
       gr_ieta->GetYaxis()->SetTitle("LED scan time (1/2ns steps) for TDC=01 peak");
     }
-    c_PeakDelay01_ieta->SaveAs("PeakDelay01_iphi"+iphi+"_depth.pdf");
+    //    c_PeakDelay01_ieta->SaveAs("PeakDelay01_iphi"+iphi+"_depth.pdf");
   }
 
+  TCanvas *c_PercentAll_LEDdelay = new TCanvas("c_PercentAll_LEDdelay","",1600,1200);
+  TCanvas *c_Percent_Delay3_Depth_iphi =new TCanvas("c_Percent_Delay3_Depth_iphi","",1600,1500);
   for (int Depth = 1; Depth < 5; Depth ++) {
     TString depth = Form("%d",Depth);
-    TCanvas *c_PercentAll_LEDdelay = new TCanvas("c_PercentAll_LEDdelay","",1600,1200);
+    c_PercentAll_LEDdelay->Clear();
     c_PercentAll_LEDdelay->Divide(2,2);
     for (int TDC = 1; TDC<5; TDC++) {
       TString tdc = Form("%d",TDC);
@@ -280,7 +291,7 @@ int plot_hf() {
     gre_ns->GetXaxis()->SetTitle("LED delay scan in 1/2ns steps");
     gre_ns->GetYaxis()->SetTitle("Average ns of TDC code");
 
-    TCanvas *c_Percent_Delay3_Depth_iphi =new TCanvas("c_Percent_Delay3_Depth_iphi","",1600,1500);
+    c_Percent_Delay3_Depth_iphi->Clear();
     c_Percent_Delay3_Depth_iphi->Divide(8,9);
     for (int iphi= 1; iphi <= 72; iphi++) {
       TString iPhi = Form("%d",iphi);
