@@ -91,7 +91,7 @@ void HcalPfgStudies::Loop()
       std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
       power++;
     }
-    //    if ((jentry+1) % 50 != 0) continue;
+    if ((jentry+1) % 50 != 0) continue;
     
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
       // cout << "HF channel " << "(" << QIE11DigiIEta->at(ch) << ", " << QIE11DigiIPhi->at(ch) << ", " << QIE11DigiDepth->at(ch) << ")" << endl;
@@ -331,6 +331,7 @@ void HcalPfgStudies::Loop()
 
   std::map<int, std::map<int, TH2F*>> ADC_TDC_timeLED;
   std::map<int, TH2F*> ADC_TDC_timeLED_allIphi;
+  std::map<int, TProfile*> ADC_TDC_timeLED_profile;
 
   // for TDC vs ADC time resolution plots
   int LED_whenTDC01[HBdepth][iEta][iPhi] = {{{0}}};
@@ -342,7 +343,7 @@ void HcalPfgStudies::Loop()
     nb = fChain->GetEntry(jentry);   nbytes += nb;
     // if (Cut(ientry) < 0) continue;
     if (((jentry+1) % 100) == 0) std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
-    //    if ((jentry+1) % 50 != 0) continue;
+    if ((jentry+1) % 50 != 0) continue;
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
       int ch_ieta = QIE11DigiIEta->at(ch);
       int ch_iphi = QIE11DigiIPhi->at(ch);
@@ -425,11 +426,15 @@ void HcalPfgStudies::Loop()
 	if (ADC_TDC_timeLED_allIphi.find(ch_depth-1) == ADC_TDC_timeLED_allIphi.end()) {
 	  ADC_TDC_timeLED_allIphi[ch_depth-1] = new TH2F(Form("ADC_TDC_timeLED_allIphi_depth%d", ch_depth), Form("ADC time vs TDC time (depth%d, all iphi)", ch_depth), nsScan-nsStart, nsStart, nsScan, nsScan-nsStart, nsStart, nsScan);
 	}
+	if (ADC_TDC_timeLED_profile.find(ch_depth-1) == ADC_TDC_timeLED_profile.end()) {
+	  ADC_TDC_timeLED_profile[ch_depth-1] = new TProfile(Form("ADC_TDC_timeLED_profile_depth%d", ch_depth), Form("Profile of ADC time vs TDC time (depth%d)", ch_depth), nsScan-nsStart, nsStart, nsScan, nsStart, nsScan); 
+	}
 	if (LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1] != 0 && LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1] != 0) {
 	  //	  std::cout << LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1] << " = led TDC time, filling hisogram! led ADC time = " << LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1] << std::endl;
 	  if (ch_iphi%4 == 3 || ch_iphi%4 == 0) ADC_TDC_timeLED[ch_depth-1][0]->Fill(LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1], LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1]);
 	  if (ch_iphi%4 == 1 || ch_iphi%4 == 2) ADC_TDC_timeLED[ch_depth-1][1]->Fill(LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1], LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1]);
 	  ADC_TDC_timeLED_allIphi[ch_depth-1]->Fill(LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1], LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1]);
+	  ADC_TDC_timeLED_profile[ch_depth-1]->Fill(LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1], LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1], 1);
 	}
       }
     }
@@ -453,6 +458,7 @@ void HcalPfgStudies::Loop()
     for (std::map<int,TH2F*>::iterator it = ADC_TDC_timeLED[depth].begin(); it != ADC_TDC_timeLED[depth].end(); ++it) it->second->Write();
   }
   for (std::map<int,TH2F*>::iterator it = ADC_TDC_timeLED_allIphi.begin() ; it != ADC_TDC_timeLED_allIphi.end(); ++it) it->second->Write();
+  for (std::map<int,TProfile*>::iterator it = ADC_TDC_timeLED_profile.begin() ; it != ADC_TDC_timeLED_profile.end(); ++it) it->second->Write();
   for (std::map<int,TGraphErrors*>::iterator it = TDC_LEDdelay_depth.begin() ; it != TDC_LEDdelay_depth.end(); ++it) it->second->Write();
   for (std::map<int,TGraphErrors*>::iterator it = TDC_LEDdelay_ns_depth.begin() ; it != TDC_LEDdelay_ns_depth.end(); ++it) it->second->Write();
   for (std::map<int,TGraph*>::iterator it = PercentDelay1.begin() ; it != PercentDelay1.end(); ++it) it->second->Write();
