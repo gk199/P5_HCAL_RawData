@@ -96,8 +96,6 @@ void HcalPfgStudies::Loop()
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
       // cout << "HF channel " << "(" << QIE11DigiIEta->at(ch) << ", " << QIE11DigiIPhi->at(ch) << ", " << QIE11DigiDepth->at(ch) << ")" << endl;
       int ch_ieta = QIE11DigiIEta->at(ch);
-      //      int fixed_ieta = QIE11DigiIEta->at(ch)+16;
-      //      if (QIE11DigiIEta->at(ch) > 0) fixed_ieta -= 1;
       int ch_iphi = QIE11DigiIPhi->at(ch);
       int ch_depth = QIE11DigiDepth->at(ch);
 
@@ -184,20 +182,8 @@ void HcalPfgStudies::Loop()
 	  int capId_check = (QIE11DigiCapID->at(ch).at(ts) - bx) % 4;
 	  hf_capID_SOI_check->Fill(capId_check);
 	}
-	
-	// HF timing for each channel (all TS)
-	// std::vector<int> channel = {QIE11DigiIEta->at(ch),QIE11DigiIPhi->at(ch),QIE11DigiDepth->at(ch)};
-	// if (hf_channel_timing.find(channel) == hf_channel_timing.end()) {
-	// hf_channel_timing[channel] = new TH1D(Form("hf_timing_iEta_%d_iPhi_%d_depth_%d",QIE11DigiIEta->at(ch),QIE11DigiIPhi->at(ch),QIE11DigiDepth->at(ch)),"",150,0,75);
-	// }
-	// if (QIE11DigiTDC->at(ch).at(ts) < 60.) {
-	// double timing = QIE11DigiTDC->at(ch).at(ts) / 2. + 25. * ts;  
-	// hf_channel_timing[channel]->Fill(timing);
-	// }
-
       } // end for loop over HF TS    
     } // end for loop over HF channels
-    
   } // end for loop over nentries
 
   float TDCmean[HBdepth][nsScan] = {{0}};
@@ -341,7 +327,6 @@ void HcalPfgStudies::Loop()
     Long64_t ientry = LoadTree(jentry);
     if (ientry < 0) break;
     nb = fChain->GetEntry(jentry);   nbytes += nb;
-    // if (Cut(ientry) < 0) continue;
     if (((jentry+1) % 100) == 0) std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
     if ((jentry+1) % 50 != 0) continue;
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
@@ -486,10 +471,6 @@ void HcalPfgStudies::Loop()
     it->second->Write();
   
   hf_capID_SOI_check->Write();
-  
-  // for (std::map<std::vector<int>,TH1D*>::iterator it = hf_channel_timing.begin() ; it != hf_channel_timing.end(); ++it)
-  // it->second->Write();
-  
   file_out.ls();
   file_out.Close();
   

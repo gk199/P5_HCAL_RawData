@@ -130,14 +130,18 @@ int plot_hf() {
   c_ADC_TDC_time2->SaveAs("ADC_TDC_time_correlation_RM34.pdf");
   c_ADC_TDC_time_allIphi->SaveAs("ADC_TDC_time_correlation_all.pdf");
 
-  TCanvas *c_ADC_TDC_time_profile = new TCanvas("c_ADC_TDC_time_profile","",1600,1200);
+  // linear regression on ADC-TDC time correlation plot
+  TCanvas *c_ADC_TDC_time_profile = new TCanvas("c_ADC_TDC_time_profile","",1600,1200);  
+  TCanvas *c_ADC_TDC_profile = new TCanvas("c_ADC_TDC_profile","",1600,1200);
   for (int depth = 1; depth < 5; depth++) {
     TString Depth = Form("%d",depth);
+    // using the TProfile and a preset RatioPlot
     TProfile *prof = (TProfile*) f->Get("ADC_TDC_timeLED_profile_depth"+Depth);
     prof->Fit("pol1");
     prof->GetXaxis()->SetTitle("Time of TDC=01 peak");
     prof->GetYaxis()->SetRangeUser(30,60);
     prof->GetXaxis()->SetRangeUser(15, 50);
+    c_ADC_TDC_time_profile->cd();
     c_ADC_TDC_time_profile->Clear();
     gPad->Clear();
     auto rp1 = new TRatioPlot(prof);
@@ -155,6 +159,23 @@ int plot_hf() {
     gStyle->SetOptStat(0);
     c_ADC_TDC_time_profile->Update();
     c_ADC_TDC_time_profile->SaveAs("ADC_TDC_time_profile_depth"+Depth+".pdf");
+
+    // using the TH2D and finding residuals by hand (stuck on that part)    
+    TH2D *prof2 = (TH2D*) f->Get("ADC_TDC_timeLED_allIphi_depth"+Depth);
+    prof2->Fit("pol1");
+    c_ADC_TDC_profile->cd();
+    c_ADC_TDC_profile->Clear();
+    gPad->Clear();
+    prof2->Draw();
+    gStyle->SetStatY(0.5);  // Set y-position (fraction of pad size)
+    gStyle->SetStatX(0.9);
+    gStyle->SetStatW(0.1);
+    if (depth == 1) gStyle->SetStatH(0.055);
+    if (depth > 1) gStyle->SetStatH(0.15);    
+    gStyle->SetOptFit(1);
+    gStyle->SetOptStat(0);
+    c_ADC_TDC_profile->Update();
+    c_ADC_TDC_profile->SaveAs("ADC_TDC_profile_depth"+Depth+".pdf");
   }
 
   TCanvas *c_ADC_Ratio = new TCanvas("c_ADC_Ratio","",1600,1200);
