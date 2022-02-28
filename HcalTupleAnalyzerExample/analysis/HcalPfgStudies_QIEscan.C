@@ -4,6 +4,9 @@
 #include <TStyle.h>
 #include <TCanvas.h>
 #include <TGraphErrors.h>
+#include <iostream>
+#include <vector>
+using std::vector;
 
 void HcalPfgStudies_QIEscan::Loop()
 {
@@ -38,6 +41,12 @@ void HcalPfgStudies_QIEscan::Loop()
    std::map<int, std::map<int,TH1D*>> hb_tdc;
    std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_depth;
    std::map<int, std::map<int,TH2D*>> hb_tdc_event;
+   std::map<int, std::map<int, TH2D*>> hb_tdc_01time;
+   std::map<int, std::map<int, TH2D*>> hb_tdc_01time_TS4_RM12;
+   std::map<int, std::map<int, TH2D*>> hb_tdc_01time_TS4_RM34;
+   std::map<int, std::map<int, TH2D*>> hb_tdc_01time_TS5_RM12;
+   std::map<int, std::map<int, TH2D*>> hb_tdc_01time_TS5_RM34;
+
 
    std::map<int,TGraph*> PercentDelay1;
    std::map<int,TGraph*> PercentDelay2;
@@ -49,35 +58,45 @@ void HcalPfgStudies_QIEscan::Loop()
 
    const int nsScan = 100;
    int nsStart = 0; 
+   int nsOffset = 15; // break at QIE phase 49, and jump to QIE phase 64
+   int nsGroup = 50; // this is the group we start with
    int nsSpacing = 100;
+   int entry_start = 5000;
+   int entry_end = 10000;
    int power = 0;
 
    const int HBdepth = 4;
    const int iPhi = 72;
    const int iEta = 16;
 
+   int TS4_TDC01_crossed[HBdepth][iEta][iPhi] = {{{0}}};
+   int TS5_TDC01_crossed[HBdepth][iEta][iPhi] = {{{0}}};
+
    std::vector<int> TDC[HBdepth][nsScan / 2];
+   //   std::vector<int> TDC_TS5[HBdepth][nsScan / 2];
    std::vector<int> TDC_iphi[HBdepth][iEta][iPhi][nsScan / 2];
+   //   std::vector<int> TDC_iphi_TS5[HBdepth][iEta][iPhi][nsScan / 2];
 
    Long64_t nbytes = 0, nb = 0;
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
-      // if (Cut(ientry) < 0) continue;
-      //      if (jentry >= 5000) continue;      
       if (jentry+1 == std::pow(2,power) || ((jentry+1) % 100) == 0) {
 	std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
 	power++;
       }
       if ((jentry+1) % 100 != 0) continue;
 
+      int QIEdelay = jentry / nsSpacing;
+      if (jentry >= 5000) QIEdelay = jentry / nsSpacing + nsOffset + nsStart;
+
       for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
 	int ch_ieta = QIE11DigiIEta->at(ch);
 	int ch_iphi = QIE11DigiIPhi->at(ch);
 	int ch_depth = QIE11DigiDepth->at(ch);
 
-	for (int ts = 2; ts <= 7; ts++) {	
+	for (int ts = 2; ts <= 6; ts++) {	
 	  // TDC all channels each TS
 	  if (hf_tdc.find(ts) == hf_tdc.end()) hf_tdc[ts] = new TH1D(Form("hf_TDC_all_channels_ts_%d",ts),"",80,0,80);
 	  hf_tdc[ts]->Fill(QIE11DigiTDC->at(ch).at(ts));
@@ -100,47 +119,75 @@ void HcalPfgStudies_QIEscan::Loop()
 	  } // ieta loop
 
 	  // this tracks the TDC by LED delay scan
-	  if (jentry > 5000) {
-	    int entry = jentry - 5000;
+	  if (jentry >= entry_start && jentry < entry_end) {
+	    int entry = jentry - entry_start;
 	    if (ch_ieta > 0 && ch_ieta < 17 && ts == 4) {
 	      int tdc_TS4 = QIE11DigiTDC->at(ch).at(ts); // 0, 1, 2, 3 in TS4
 	      int tdc_TS3 = QIE11DigiTDC->at(ch).at(3)-3; // -1 (delay2) in TS3
 	      if (tdc_TS4 < 3) {
-		if (ch_ieta == 1) {
-		  TDC[ch_depth-1][(entry / nsSpacing) + nsStart].push_back(tdc_TS4); // floor(jentry / nsSpacing) is delay in ns 
-		}
+		if (ch_ieta == 1) TDC[ch_depth-1][(entry / nsSpacing) + nsStart].push_back(tdc_TS4); // floor(jentry / nsSpacing) is delay in ns 
 		TDC_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(entry / nsSpacing) + nsStart].push_back(tdc_TS4);
 	      }
 	      else if (tdc_TS3 == -1) {
-		if (ch_ieta == 1) {
-		  TDC[ch_depth-1][(entry / nsSpacing) + nsStart].push_back(tdc_TS3);
-		}
+		if (ch_ieta == 1) TDC[ch_depth-1][(entry / nsSpacing) + nsStart].push_back(tdc_TS3);
 		TDC_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(entry / nsSpacing) + nsStart].push_back(tdc_TS3);
 	      }
 	    }
-	  } // jentry > 5000
-	
+	  } // jentry >= 5000
+	  /*
+	  if (jentry < 5000) {
+	    if (ch_ieta > 0 && ch_ieta < 17 && ts == 5) {
+	      int tdc_TS5 = QIE11DigiTDC->at(ch).at(ts); // 0, 1, 2, 3 in TS5
+	      int tdc_TS4 = QIE11DigiTDC->at(ch).at(4) =-3; // -1 (delay2) in TS4
+	      if (tdc_TS5 < 3) {
+		if (ch_ieta == 1) TDC_TS5[ch_depth-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS5); // floor(jentry / nsSpacing) is delay in ns
+		TDC_iphi_TS5[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS5);
+              }
+              else if (tdc_TS4 == -1) {
+                if (ch_ieta == 1) TDC_TS5[ch_depth-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS4);
+                TDC_iphi_TS5[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS4);
+              }
+            }
+	    } // jentry < 5000 */
 
+	  //TODO end loop over TS here, no reliance on TS on below 2D histograms 
 	  // this does a 2D histogram of TS3 and TS4 TDC values to show transitions
 	  for (int ieta = 1; ieta <= 16; ieta++) {
 	    if (QIE11DigiIEta->at(ch) == ieta && ch_depth == 1 && ts == 4) {
 	      if (hb_tdc_event[ieta].find(ts) == hb_tdc_event[ieta].end()) {
 		hb_tdc_event[ieta][ts] = new TH2D(Form("hb_TDC_iEta_%d_ts_%d_%d",ieta,ts,ts-1),Form("-2: delay1 in TS3, -1: delay2 in TS3, 0,1,2 in TS4,  for ieta=%d depth=1",ieta),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,-2,6);
 	      }
+	      if (hb_tdc_01time[ieta].find(ts) == hb_tdc_01time[ieta].end()) {
+                hb_tdc_01time[ieta][ts] = new TH2D(Form("hb_TDC01_iEta_%d_ts_%d",ieta,ts,ts-1),Form("1 = TDC01 TS4, 2 = TDC01 TS5,  for ieta=%d depth=1",ieta),nsScan-nsStart+nsOffset,0,(nsScan-nsStart+nsOffset), 3,0,3);
+              }
 	      if (QIE11DigiTDC->at(ch).at(ts) != 3) hb_tdc_event[ieta][ts]->Fill(jentry,QIE11DigiTDC->at(ch).at(ts));
-	      // hb_tdc_event[ieta][ts]->Fill(jentry,-QIE11DigiTDC->at(ch).at(3)+1);
 	      if (QIE11DigiTDC->at(ch).at(3) != 3) hb_tdc_event[ieta][ts]->Fill(jentry,QIE11DigiTDC->at(ch).at(3)-3);
 	      if (QIE11DigiTDC->at(ch).at(5) != 3) hb_tdc_event[ieta][ts]->Fill(jentry,QIE11DigiTDC->at(ch).at(5)+3);
+
+	      if (QIE11DigiTDC->at(ch).at(ts) == 1 && TS4_TDC01_crossed[ch_depth][ieta][QIE11DigiIPhi->at(ch)] == 0) {
+		hb_tdc_01time[ieta][ts]->Fill(QIEdelay,QIE11DigiTDC->at(ch).at(ts));
+		TS4_TDC01_crossed[ch_depth][ieta][QIE11DigiIPhi->at(ch)] = 1;
+	      }
+              if (QIE11DigiTDC->at(ch).at(5) == 1) hb_tdc_01time[ieta][ts]->Fill(QIEdelay,QIE11DigiTDC->at(ch).at(5)+1);
 	    }
 	  } // end ieta loop for 2D histogram
 	} // end loop over TS
       } // end loop over channels
    } // end loop over nentries
 
+   /*
+   std::cout << "about to append vectors " << std::endl;
+   for (int i = 0; i < HBdepth; i++) {
+     for (int ns = 0; ns < nsScan/2; ns++) TDC_TS5[i][ns].insert(std::end(TDC_TS5[i][ns]), std::begin(TDC[i][ns]), std::end(TDC[i][ns]));
+     for (int eta = 0; eta < iEta; eta++) {
+       for (int phi = 0; phi < iPhi; phi++) {
+	 for (int ns = 0; ns < nsScan/2; ns++) TDC_iphi_TS5[i][eta][phi][ns].insert(std::end(TDC_iphi_TS5[i][eta][phi][ns]), std::begin(TDC_iphi[i][eta][phi][ns]), std::end(TDC_iphi[i][eta][phi][ns]));
+       }
+     }
+     } */
+
    float TDCmean[HBdepth][nsScan] = {{0}};
    float TDCrms[HBdepth][nsScan] = {{0}};
-   float TDCmean_ns[HBdepth][nsScan] = {{0}};
-   float TDCrms_ns[HBdepth][nsScan] = {{0}};
    float PercentTDC1[HBdepth][nsScan] = {{0}};
    float PercentTDC2[HBdepth][nsScan] = {{0}};
    float PercentTDC3[HBdepth][nsScan] = {{0}};
@@ -158,8 +205,9 @@ void HcalPfgStudies_QIEscan::Loop()
    int iPhi_pos[iPhi] = {0};
    int iEta_pos[iEta] = {0};
 
-   for (int ns=0; ns < nsScan/2; ns++) {
-     time[ns] = ns;
+   for (int ns=0; ns < nsScan / 2; ns++) {
+     time[ns] = ns + nsStart;
+     if (ns >= nsScan / 2) time[ns] += nsOffset;
      if (ns >= nsStart) {
        for (int depth = 0; depth < HBdepth; depth++) {
 	 for (int i=0; i < TDC[depth][ns].size(); i++) {
@@ -226,7 +274,7 @@ void HcalPfgStudies_QIEscan::Loop()
 	   }
 	 }
 	 iPhi_pos[iphi] = iphi + 1; // 1-72
-	 peakDelayed01[depth][ieta][iphi] = distance(PercentTDC3_iphi[depth][ieta][iphi], max_element(PercentTDC3_iphi[depth][ieta][iphi], PercentTDC3_iphi[depth][ieta][iphi] + nsScan)); // for each cell, determine at what LED delay scan (in ns) the 01 peak occurs at                                                                                                                                             
+	 peakDelayed01[depth][ieta][iphi] = distance(PercentTDC3_iphi[depth][ieta][iphi], max_element(PercentTDC3_iphi[depth][ieta][iphi], PercentTDC3_iphi[depth][ieta][iphi] + nsScan)); // for each cell, determine at what LED delay scan (in ns) the 01 peak occurs at // to make this QIE phase delay, do + nsOffset + 50 or similar (TODO) and different if before or after split
 	   peakDelayed01_ieta[depth][iphi][ieta] = peakDelayed01[depth][ieta][iphi]; // use this to plot vs ieta
        } // iphi loop 0-71
        PeakDelay01[depth][ieta] = new TGraph(iPhi,iPhi_pos,peakDelayed01[depth][ieta]);
@@ -246,105 +294,16 @@ void HcalPfgStudies_QIEscan::Loop()
      }
    }
 
-   //   std::map<int, std::map<int, std::map<int, TH2F*>>> LUT_time_01;
-
-   std::map<int, std::map<int, TH2F*>> ADC_TDC_timeLED;
-   std::map<int, TH2F*> ADC_TDC_timeLED_allIphi;
-   std::map<int, TProfile*> ADC_TDC_timeLED_profile;
-
-   // for TDC vs ADC time resolution plots
-   int LED_whenTDC01[HBdepth][iEta][iPhi] = {{{0}}};
-   int LED_whenADC10[HBdepth][iEta][iPhi] = {{{0}}};
-
-   for (Long64_t jentry=0; jentry<nentries / 2;jentry++) {
-     Long64_t ientry = LoadTree(jentry + 5000);
-     if (ientry < 0) break;
-     nb = fChain->GetEntry(jentry + 5000);   nbytes += nb;
-     if (((jentry+1) % 100) == 0) std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
-     if ((jentry+1) % 100 != 0) continue; 
-     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
-       int ch_ieta = QIE11DigiIEta->at(ch);
-       int ch_iphi = QIE11DigiIPhi->at(ch);
-       int iphi_group = -1;
-       int RM = -1;
-       if (ch_iphi%4 == 1 || ch_iphi%4 == 2) {
-	 iphi_group = 1;
-	 RM = 34;
-       }
-       if (ch_iphi%4 == 0 || ch_iphi%4 == 3) {
-	 iphi_group = 0;
-	 RM = 12;
-       }
-       int ch_depth = QIE11DigiDepth->at(ch);
-
-       if (ch_ieta > 0 && ch_ieta < 16) {
-	 float ADC3 = QIE11DigiADC->at(ch).at(3);
-	 float ADC4 = QIE11DigiADC->at(ch).at(4);
-	 /*
-	 for (int percent = 7; percent < 10; percent++) {
-	   if (LUT_time_01[percent-7][ch_depth-1].find(iphi_group) == LUT_time_01[percent-7][ch_depth-1].end()) { // LUT_time_01[percent-7][ch_depth-1][ch_ieta-1].find(0)
-	     LUT_time_01[percent-7][ch_depth-1][iphi_group] = new TH2F(Form("LUT_time_RM%d_%d0per_01_depth%d", RM, percent, ch_depth), Form("LUT time vs delay of TDC=01 peak (%d0, depth%d, all iphi)", percent, ch_depth), nsScan-nsStart, nsStart, nsScan, 110, 0, 25);
-	   }
-	   if (PercentTDC3_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] * 10 > percent) { // slightly delayed                                                                      
-	     if (ch_iphi%4 == 3 || ch_iphi%4 == 0) LUT_time_01[percent-7][ch_depth-1][0]->Fill((jentry / nsSpacing) + nsStart, prompt_boundary[ch_ieta-1][ch_depth-1]); // RM1,2
-	     if (ch_iphi%4 == 1 || ch_iphi%4 == 2) LUT_time_01[percent-7][ch_depth-1][1]->Fill((jentry / nsSpacing) + nsStart, prompt_boundary[ch_ieta-1][ch_depth-1]); // RM3,4
-	   }
-	   } // percent 70-90% */
-	 if (PercentTDC3_iphi[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart] * 10 > 8 && LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1] == 0) { // slightly delayed
-	   LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1] = (jentry / nsSpacing) + nsStart;
-	 }
-	 if ((ADC3 - ADC4) / (ADC3 + ADC4) <= -0.2 && LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1] == 0) { // ADC ratio, and require first time crosses this value                                        
-	   LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1] = (jentry / nsSpacing) + nsStart;
-	 }
-       } // ieta selection                                                                                                                                                                                   
-     } // channel loop                                                                                                                                                                                       
-   } // entry loop (5000 entries, 100 at each LED scan point 
-   for (int ch_depth = 1; ch_depth <= HBdepth; ch_depth ++ ) {
-     for (int ch_ieta = 1; ch_ieta <= 16; ch_ieta++ ) {
-       for (int ch_iphi = 1; ch_iphi <= 72; ch_iphi++ ) {
-	 int iphi_group = -1;
-	 int RM = -1;
-	 if (ch_iphi%4 == 1 || ch_iphi%4 == 2) {
-	   iphi_group = 1;
-	   RM = 34;
-	 }
-	 if (ch_iphi%4 == 0 || ch_iphi%4 == 3) {
-	   iphi_group = 0;
-	   RM = 12;
-      }
-	 if (ADC_TDC_timeLED[ch_depth-1].find(iphi_group) == ADC_TDC_timeLED[ch_depth-1].end()) {
-	   ADC_TDC_timeLED[ch_depth-1][iphi_group] = new TH2F(Form("ADC_TDC_time_%dRM_depth%d", RM, ch_depth), Form("ADC time vs TDC time (depth%d, RM%d)", ch_depth, RM), nsScan-nsStart, nsStart, nsScan, nsScan-nsStart, nsStart, nsScan);
-	 }
-	 if (ADC_TDC_timeLED_allIphi.find(ch_depth-1) == ADC_TDC_timeLED_allIphi.end()) {
-	   ADC_TDC_timeLED_allIphi[ch_depth-1] = new TH2F(Form("ADC_TDC_timeLED_allIphi_depth%d", ch_depth), Form("ADC time vs TDC time (depth%d, all iphi)", ch_depth), nsScan-nsStart, nsStart, nsScan, nsScan-nsStart, nsStart, nsScan);
-	 }
-	 if (ADC_TDC_timeLED_profile.find(ch_depth-1) == ADC_TDC_timeLED_profile.end()) {
-	   ADC_TDC_timeLED_profile[ch_depth-1] = new TProfile(Form("ADC_TDC_timeLED_profile_depth%d", ch_depth), Form("Profile of ADC time vs TDC time (depth%d)", ch_depth), nsScan-nsStart, nsStart, nsScan, nsStart, nsScan);
-	 }
-	 if (LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1] != 0 && LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1] != 0) {
-	   if (ch_iphi%4 == 3 || ch_iphi%4 == 0) ADC_TDC_timeLED[ch_depth-1][0]->Fill(LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1], LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1]);
-	   if (ch_iphi%4 == 1 || ch_iphi%4 == 2) ADC_TDC_timeLED[ch_depth-1][1]->Fill(LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1], LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1]);
-	   ADC_TDC_timeLED_allIphi[ch_depth-1]->Fill(LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1], LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1]);
-	   ADC_TDC_timeLED_profile[ch_depth-1]->Fill(LED_whenTDC01[ch_depth-1][ch_ieta-1][ch_iphi-1], LED_whenADC10[ch_depth-1][ch_ieta-1][ch_iphi-1], 1);
-	 }
-       }
-     }
-   }
-   
-   
    // output file for histograms
    TFile file_out("hcal_histograms_QIEscan.root","RECREATE");
 
    // write histograms to output file
    for (int depth = 0; depth < 1; depth++) { //HBdepth; depth++) {
      for (std::map<int,TGraph*>::iterator it = PeakDelay01[depth].begin() ; it != PeakDelay01[depth].end(); ++it) it->second->Write();
-     for (std::map<int,TGraph*>::iterator it = PeakDelay01_ieta[depth].begin() ; it != PeakDelay01_ieta[depth].end(); ++it) it->second->Write();
+     //     for (std::map<int,TGraph*>::iterator it = PeakDelay01_ieta[depth].begin() ; it != PeakDelay01_ieta[depth].end(); ++it) it->second->Write();
      //     for (std::map<int,TGraph*>::iterator it = PercentDelay3_iphi[depth].begin() ; it != PercentDelay3_iphi[depth].end(); ++it) it->second->Write();
-     for (std::map<int,TH2F*>::iterator it = ADC_TDC_timeLED[depth].begin(); it != ADC_TDC_timeLED[depth].end(); ++it) it->second->Write();
    }
-   for (std::map<int,TH2F*>::iterator it = ADC_TDC_timeLED_allIphi.begin() ; it != ADC_TDC_timeLED_allIphi.end(); ++it) it->second->Write();
-   for (std::map<int,TProfile*>::iterator it = ADC_TDC_timeLED_profile.begin() ; it != ADC_TDC_timeLED_profile.end(); ++it) it->second->Write();
-  
+
    for (std::map<int,TH1D*>::iterator it = hf_tdc.begin() ; it != hf_tdc.end(); ++it)
      it->second->Write();
    for (int ieta = 1; ieta <= 16; ieta++) {
@@ -352,10 +311,13 @@ void HcalPfgStudies_QIEscan::Loop()
        it->second->Write();
      for (std::map<int,TH2D*>::iterator it = hb_tdc_event[ieta].begin() ; it != hb_tdc_event[ieta].end(); ++it)
        it->second->Write();
+     for (std::map<int,TH2D*>::iterator it = hb_tdc_01time[ieta].begin() ; it != hb_tdc_01time[ieta].end(); ++it)
+       it->second->Write();
+     /*
      if (ieta == 1) for (int depth = 1; depth <= 4; depth++) {
 	 for (std::map<int,TH1D*>::iterator it = hb_tdc_depth[ieta][depth].begin() ; it != hb_tdc_depth[ieta][depth].end(); ++it)
 	   it->second->Write();
-       }
+	   } */
    }
    for (std::map<int,TGraph*>::iterator it = PercentDelay1.begin() ; it != PercentDelay1.end(); ++it) it->second->Write();
    for (std::map<int,TGraph*>::iterator it = PercentDelay2.begin() ; it != PercentDelay2.end(); ++it) it->second->Write();
