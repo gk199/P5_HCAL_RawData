@@ -5,6 +5,7 @@
 #include <TCanvas.h>
 #include <TGraphErrors.h>
 #include <iostream>
+#include <fstream>
 #include <vector>
 using std::vector;
 
@@ -42,6 +43,7 @@ void HcalPfgStudies_QIEscan::Loop()
    std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_depth;
    std::map<int,TH2D*> hb_tdc_event;
    std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_01time_TS; // [ts][ieta][RM]
+   std::map<int, std::map<int, std::map<int, std::map<int,TH1D*>>>> hb_tdc_01time_ieta_iphi_depth; // [ts][ieta][iphi][depth]
 
    std::map<int,TGraph*> PercentDelay1;
    std::map<int,TGraph*> PercentDelay2;
@@ -64,8 +66,10 @@ void HcalPfgStudies_QIEscan::Loop()
    const int iPhi = 72;
    const int iEta = 16;
 
-   //   int TS4_TDC01_crossed[HBdepth][iEta][iPhi] = {{{0}}};
-   //   int TS5_TDC01_crossed[HBdepth][iEta][iPhi] = {{{0}}};
+   double TS_TDC01_mean[2][iEta][2]; // [ts][ieta][iphi_group]
+   double TS_TDC01_sigma[2][iEta][2];
+   double TDC01mean_TS_ieta_iphi_depth[2][iEta][iPhi][HBdepth];
+   double TDC01sigma_TS_ieta_iphi_depth[2][iEta][iPhi][HBdepth];
 
    std::vector<int> TDC[HBdepth][nsScan / 2];
    //   std::vector<int> TDC_TS5[HBdepth][nsScan / 2];
@@ -140,55 +144,31 @@ void HcalPfgStudies_QIEscan::Loop()
 	      }
 	    }
 	  } // jentry >= 5000
-	  /*
-	  if (jentry < 5000) {
-	    if (ch_ieta > 0 && ch_ieta < 17 && ts == 5) {
-	      int tdc_TS5 = QIE11DigiTDC->at(ch).at(ts); // 0, 1, 2, 3 in TS5
-	      int tdc_TS4 = QIE11DigiTDC->at(ch).at(4) =-3; // -1 (delay2) in TS4
-	      if (tdc_TS5 < 3) {
-		if (ch_ieta == 1) TDC_TS5[ch_depth-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS5); // floor(jentry / nsSpacing) is delay in ns
-		TDC_iphi_TS5[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS5);
-              }
-              else if (tdc_TS4 == -1) {
-                if (ch_ieta == 1) TDC_TS5[ch_depth-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS4);
-                TDC_iphi_TS5[ch_depth-1][ch_ieta-1][ch_iphi-1][(jentry / nsSpacing) + nsStart].push_back(tdc_TS4);
-              }
-            }
-	    } // jentry < 5000 */
-
 	} // end loop over TS
+
 	// this does a 2D histogram of TS3 and TS4 TDC values to show transitions
-	
 	for (int ieta = 1; ieta <= 16; ieta++) {
 	  if (QIE11DigiIEta->at(ch) == ieta && ch_depth == 1) {
 	    if (hb_tdc_event.find(ieta) == hb_tdc_event.end()) {
-		hb_tdc_event[ieta] = new TH2D(Form("hb_TDC_iEta_%d_ts4_ts5",ieta),Form("-2: delay1 in TS3, -1: delay2 in TS3, 0,1,2 in TS4, 3,4,5 in TS5 for ieta=%d depth=1",ieta),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,-2,6);
-	      }
-
+	      hb_tdc_event[ieta] = new TH2D(Form("hb_TDC_iEta_%d_ts4_ts5",ieta),Form("-2: delay1 in TS3, -1: delay2 in TS3, 0,1,2 in TS4, 3,4,5 in TS5 for ieta=%d depth=1",ieta),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,-2,6);
+	    }
+	    
 	    if (QIE11DigiTDC->at(ch).at(4) != 3) hb_tdc_event[ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(4));
             if (QIE11DigiTDC->at(ch).at(3) != 3) hb_tdc_event[ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(3)-3);
             if (QIE11DigiTDC->at(ch).at(5) != 3) hb_tdc_event[ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(5)+3);
-
+	    
 	    for (int ts = 4; ts<=5; ts++) {
-	      if (hb_tdc_01time_TS[ts][ieta].find(iphi_group) == hb_tdc_01time_TS[ts][ieta].end()) hb_tdc_01time_TS[ts][ieta][iphi_group] = new TH1D(Form("hb_TDC01_iEta_%d_TS%d_RM%d",ieta,ts,RM),Form("QIE scan time of TDC=01 transition, TS%d, iEta=%d, depth=1, RM%d",ieta,ts,RM),nsScan-nsStart+nsOffset,0,nsScan-nsStart+nsOffset);
+	      if (hb_tdc_01time_TS[ts][ieta].find(iphi_group) == hb_tdc_01time_TS[ts][ieta].end()) hb_tdc_01time_TS[ts][ieta][iphi_group] = new TH1D(Form("hb_TDC01_iEta_%d_TS%d_RM%d",ieta,ts,RM),Form("QIE scan time of TDC=01 transition, TS%d, iEta=%d, depth=1, RM%d",ts,ieta,RM),nsScan-nsStart+nsOffset,0,nsScan-nsStart+nsOffset);
 	      if (QIE11DigiTDC->at(ch).at(ts) == 1) hb_tdc_01time_TS[ts][ieta][iphi_group]->Fill(QIEdelay);
+	      
+	      if (hb_tdc_01time_ieta_iphi_depth[ts][ieta][ch_iphi].find(ch_depth) == hb_tdc_01time_ieta_iphi_depth[ts][ieta][ch_iphi].end()) hb_tdc_01time_ieta_iphi_depth[ts][ieta][ch_iphi][ch_depth] = new TH1D(Form("hb_TDC01_iEta%d_iPhi%d_Depth%d_TS%d",ieta, ch_iphi, ch_depth, ts),Form("QIE scan time of TDC=01 transition, TS%d, iEta=%d, iPhi=%d, depth=%d",ts, ieta, ch_iphi, ch_depth),nsScan-nsStart+nsOffset,0,nsScan-nsStart+nsOffset);
+	      if(QIE11DigiTDC->at(ch).at(ts) == 1) hb_tdc_01time_ieta_iphi_depth[ts][ieta][ch_iphi][ch_depth]->Fill(QIEdelay);
 	    }
 	  }
 	} // end ieta loop for 2D histogram
       } // end loop over channels
    } // end loop over nentries
    
-   /*
-   std::cout << "about to append vectors " << std::endl;
-   for (int i = 0; i < HBdepth; i++) {
-     for (int ns = 0; ns < nsScan/2; ns++) TDC_TS5[i][ns].insert(std::end(TDC_TS5[i][ns]), std::begin(TDC[i][ns]), std::end(TDC[i][ns]));
-     for (int eta = 0; eta < iEta; eta++) {
-       for (int phi = 0; phi < iPhi; phi++) {
-	 for (int ns = 0; ns < nsScan/2; ns++) TDC_iphi_TS5[i][eta][phi][ns].insert(std::end(TDC_iphi_TS5[i][eta][phi][ns]), std::begin(TDC_iphi[i][eta][phi][ns]), std::end(TDC_iphi[i][eta][phi][ns]));
-       }
-     }
-     } */
-
    float TDCmean[HBdepth][nsScan] = {{0}};
    float TDCrms[HBdepth][nsScan] = {{0}};
    float PercentTDC1[HBdepth][nsScan] = {{0}};
@@ -309,6 +289,11 @@ void HcalPfgStudies_QIEscan::Loop()
 
    for (std::map<int,TH1D*>::iterator it = hf_tdc.begin() ; it != hf_tdc.end(); ++it)
      it->second->Write();
+
+   //   std::ofstream TS4_GaussianFitResults;
+   //   TS4_GaussianFitResults.open("TS4_GaussianFitResults.txt",std::ios_base::trunc);
+   //   TS4_GaussianFitResults << "ieta   RM   Mean    Sigma \n ";
+
    for (int ieta = 1; ieta <= 16; ieta++) {
      for (std::map<int,TH1D*>::iterator it = hb_tdc[ieta].begin() ; it != hb_tdc[ieta].end(); ++it)
        it->second->Write();
@@ -317,22 +302,57 @@ void HcalPfgStudies_QIEscan::Loop()
      TF1* fit_TS5 = new TF1("fit_TS5","gaus",5,25);
 
      for (int ts = 4; ts <= 5; ts++) {
+       int iphi_group = 0;
        for (std::map<int,TH1D*>::iterator it = hb_tdc_01time_TS[ts][ieta].begin() ; it != hb_tdc_01time_TS[ts][ieta].end(); ++it) {
+	 // need to know which iphi_group (RM) we are on. first time in loop is iphi_group0 probably
+	 iphi_group += 1;
 
-	 if (ts == 4) it->second->Fit(fit_TS4,"RL"); // L for log likelihood methon (when histogram represents counts)
-	 if (ts == 5) it->second->Fit(fit_TS5,"RL"); 
-
+	 if (ts == 4) {
+	   it->second->Fit(fit_TS4,"RLQ"); // L for log likelihood method (when histogram represents counts)
+	   TS_TDC01_mean[0][ieta][iphi_group] = fit_TS4->GetParameter(1);
+           TS_TDC01_sigma[0][ieta][iphi_group] = fit_TS4->GetParameter(2);
+	 }
+	 if (ts == 5) {
+	   it->second->Fit(fit_TS5,"RLQ"); 
+	   TS_TDC01_mean[1][ieta][iphi_group] = fit_TS5->GetParameter(1);
+           TS_TDC01_sigma[1][ieta][iphi_group] = fit_TS5->GetParameter(2); // could also get errors on these parameters
+	 }
 	 it->second->Write();
        }
-     }
-   }
+       /*
+       for (int iphi = 1; iphi <= 72; iphi++) {
+	 for (std::map<int,TH1D*>::iterator it = hb_tdc_01time_ieta_iphi_depth[ts][ieta][iphi].begin() ; it != hb_tdc_01time_ieta_iphi_depth[ts][ieta][iphi].end(); ++it) {
+	   if (ts == 4) {
+	     it->second->Fit(fit_TS4,"RLQ");
+	     TDC01mean_TS_ieta_iphi_depth[0][ieta][iphi][0] = fit_TS4->GetParameter(1);
+             TDC01sigma_TS_ieta_iphi_depth[0][ieta][iphi][0] = fit_TS4->GetParameter(2);
+	   }
+	   if (ts == 5) {
+	     it->second->Fit(fit_TS5,"RLQ");
+             TDC01mean_TS_ieta_iphi_depth[1][ieta][iphi][0] = fit_TS4->GetParameter(1);
+             TDC01sigma_TS_ieta_iphi_depth[1][ieta][iphi][0] = fit_TS4->GetParameter(2); // how to figure out which depth I'm in? same question as above, how to determine which iphi_group
+	   }
+	 } 
+	 } */
+     } // end ts loop
+     std::cout << "ieta = " << ieta << ", with fit mean on TS4, RM34 = " << TS_TDC01_mean[0][ieta][0] << std::endl;
+     std::cout << "         , with fit sigma on TS4, RM34 = " << TS_TDC01_sigma[0][ieta][0] << std::endl;
+     std::cout << "ieta = " << ieta << ", with fit mean on TS4, RM12 = " << TS_TDC01_mean[0][ieta][1] << std::endl;
+     std::cout << "         , with fit sigma on TS4, RM12 = " << TS_TDC01_sigma[0][ieta][1] << std::endl;
+
+     //     TS4_GaussianFitResults << ieta << ", RM12" << ", " << TS_TDC01_mean[0][ieta][1] << ", " << TS_TDC01_sigma[0][ieta][1] << " \n";
+     //     TS4_GaussianFitResults << ieta << ", RM34" << ", " << TS_TDC01_mean[0][ieta][0] << ", " << TS_TDC01_sigma[0][ieta][0] << " \n";
+
+   } // end ieta loop 1-16
+   //   TS4_GaussianFitResults.close();
+
    for (std::map<int,TH2D*>::iterator it = hb_tdc_event.begin() ; it != hb_tdc_event.end(); ++it)
      it->second->Write();
-
-     /*
+   
+   /*
      if (ieta == 1) for (int depth = 1; depth <= 4; depth++) {
-	 for (std::map<int,TH1D*>::iterator it = hb_tdc_depth[ieta][depth].begin() ; it != hb_tdc_depth[ieta][depth].end(); ++it)
-	   it->second->Write();
+     for (std::map<int,TH1D*>::iterator it = hb_tdc_depth[ieta][depth].begin() ; it != hb_tdc_depth[ieta][depth].end(); ++it)
+     it->second->Write();
 	   } */
    for (std::map<int,TGraph*>::iterator it = PercentDelay1.begin() ; it != PercentDelay1.end(); ++it) it->second->Write();
    for (std::map<int,TGraph*>::iterator it = PercentDelay2.begin() ; it != PercentDelay2.end(); ++it) it->second->Write();
