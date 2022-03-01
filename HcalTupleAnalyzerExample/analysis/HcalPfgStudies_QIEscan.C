@@ -42,7 +42,6 @@ void HcalPfgStudies_QIEscan::Loop()
    std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_depth;
    std::map<int,TH2D*> hb_tdc_event;
    std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_01time_TS; // [ts][ieta][RM]
-   //   std::map<int, std::map<int,TH1D*>> hb_tdc_01time_TS5;
 
    std::map<int,TGraph*> PercentDelay1;
    std::map<int,TGraph*> PercentDelay2;
@@ -82,7 +81,7 @@ void HcalPfgStudies_QIEscan::Loop()
 	std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
 	power++;
       }
-      //      if ((jentry+1) % 100 != 0) continue;
+      if ((jentry+1) % 100 != 0) continue;
 
       int QIEdelay = jentry / nsSpacing;
       if (jentry >= 5000) QIEdelay = jentry / nsSpacing + nsOffset + nsStart;
@@ -313,9 +312,18 @@ void HcalPfgStudies_QIEscan::Loop()
    for (int ieta = 1; ieta <= 16; ieta++) {
      for (std::map<int,TH1D*>::iterator it = hb_tdc[ieta].begin() ; it != hb_tdc[ieta].end(); ++it)
        it->second->Write();
+
+     TF1* fit_TS4 = new TF1("fit_TS4","gaus",70,90);
+     TF1* fit_TS5 = new TF1("fit_TS5","gaus",5,25);
+
      for (int ts = 4; ts <= 5; ts++) {
-       for (std::map<int,TH1D*>::iterator it = hb_tdc_01time_TS[ts][ieta].begin() ; it != hb_tdc_01time_TS[ts][ieta].end(); ++it)
+       for (std::map<int,TH1D*>::iterator it = hb_tdc_01time_TS[ts][ieta].begin() ; it != hb_tdc_01time_TS[ts][ieta].end(); ++it) {
+
+	 if (ts == 4) it->second->Fit(fit_TS4,"RL"); // L for log likelihood methon (when histogram represents counts)
+	 if (ts == 5) it->second->Fit(fit_TS5,"RL"); 
+
 	 it->second->Write();
+       }
      }
    }
    for (std::map<int,TH2D*>::iterator it = hb_tdc_event.begin() ; it != hb_tdc_event.end(); ++it)
