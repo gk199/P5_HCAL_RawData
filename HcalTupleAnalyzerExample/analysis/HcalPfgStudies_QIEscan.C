@@ -40,13 +40,9 @@ void HcalPfgStudies_QIEscan::Loop()
    std::map<int,TH1D*> hf_tdc;
    std::map<int, std::map<int,TH1D*>> hb_tdc;
    std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_depth;
-   std::map<int, std::map<int,TH2D*>> hb_tdc_event;
-   std::map<int, std::map<int, TH2D*>> hb_tdc_01time;
-   std::map<int, std::map<int, TH2D*>> hb_tdc_01time_TS4_RM12;
-   std::map<int, std::map<int, TH2D*>> hb_tdc_01time_TS4_RM34;
-   std::map<int, std::map<int, TH2D*>> hb_tdc_01time_TS5_RM12;
-   std::map<int, std::map<int, TH2D*>> hb_tdc_01time_TS5_RM34;
-
+   std::map<int,TH2D*> hb_tdc_event;
+   std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_01time_TS; // [ts][ieta][RM]
+   //   std::map<int, std::map<int,TH1D*>> hb_tdc_01time_TS5;
 
    std::map<int,TGraph*> PercentDelay1;
    std::map<int,TGraph*> PercentDelay2;
@@ -69,8 +65,8 @@ void HcalPfgStudies_QIEscan::Loop()
    const int iPhi = 72;
    const int iEta = 16;
 
-   int TS4_TDC01_crossed[HBdepth][iEta][iPhi] = {{{0}}};
-   int TS5_TDC01_crossed[HBdepth][iEta][iPhi] = {{{0}}};
+   //   int TS4_TDC01_crossed[HBdepth][iEta][iPhi] = {{{0}}};
+   //   int TS5_TDC01_crossed[HBdepth][iEta][iPhi] = {{{0}}};
 
    std::vector<int> TDC[HBdepth][nsScan / 2];
    //   std::vector<int> TDC_TS5[HBdepth][nsScan / 2];
@@ -86,7 +82,7 @@ void HcalPfgStudies_QIEscan::Loop()
 	std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
 	power++;
       }
-      if ((jentry+1) % 100 != 0) continue;
+      //      if ((jentry+1) % 100 != 0) continue;
 
       int QIEdelay = jentry / nsSpacing;
       if (jentry >= 5000) QIEdelay = jentry / nsSpacing + nsOffset + nsStart;
@@ -95,6 +91,17 @@ void HcalPfgStudies_QIEscan::Loop()
 	int ch_ieta = QIE11DigiIEta->at(ch);
 	int ch_iphi = QIE11DigiIPhi->at(ch);
 	int ch_depth = QIE11DigiDepth->at(ch);
+
+	int iphi_group = -1;
+	int RM = -1;
+	if (ch_iphi%4 == 1 || ch_iphi%4 == 2) {
+	  iphi_group = 1;
+	  RM = 34;
+	}
+	if (ch_iphi%4 == 0 || ch_iphi%4 == 3) {
+	  iphi_group = 0;
+	  RM = 12;
+	}
 
 	for (int ts = 2; ts <= 6; ts++) {	
 	  // TDC all channels each TS
@@ -150,31 +157,28 @@ void HcalPfgStudies_QIEscan::Loop()
             }
 	    } // jentry < 5000 */
 
-	  //TODO end loop over TS here, no reliance on TS on below 2D histograms 
-	  // this does a 2D histogram of TS3 and TS4 TDC values to show transitions
-	  for (int ieta = 1; ieta <= 16; ieta++) {
-	    if (QIE11DigiIEta->at(ch) == ieta && ch_depth == 1 && ts == 4) {
-	      if (hb_tdc_event[ieta].find(ts) == hb_tdc_event[ieta].end()) {
-		hb_tdc_event[ieta][ts] = new TH2D(Form("hb_TDC_iEta_%d_ts_%d_%d",ieta,ts,ts-1),Form("-2: delay1 in TS3, -1: delay2 in TS3, 0,1,2 in TS4,  for ieta=%d depth=1",ieta),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,-2,6);
-	      }
-	      if (hb_tdc_01time[ieta].find(ts) == hb_tdc_01time[ieta].end()) {
-                hb_tdc_01time[ieta][ts] = new TH2D(Form("hb_TDC01_iEta_%d_ts_%d",ieta,ts,ts-1),Form("1 = TDC01 TS4, 2 = TDC01 TS5,  for ieta=%d depth=1",ieta),nsScan-nsStart+nsOffset,0,(nsScan-nsStart+nsOffset), 3,0,3);
-              }
-	      if (QIE11DigiTDC->at(ch).at(ts) != 3) hb_tdc_event[ieta][ts]->Fill(jentry,QIE11DigiTDC->at(ch).at(ts));
-	      if (QIE11DigiTDC->at(ch).at(3) != 3) hb_tdc_event[ieta][ts]->Fill(jentry,QIE11DigiTDC->at(ch).at(3)-3);
-	      if (QIE11DigiTDC->at(ch).at(5) != 3) hb_tdc_event[ieta][ts]->Fill(jentry,QIE11DigiTDC->at(ch).at(5)+3);
-
-	      if (QIE11DigiTDC->at(ch).at(ts) == 1 && TS4_TDC01_crossed[ch_depth][ieta][QIE11DigiIPhi->at(ch)] == 0) {
-		hb_tdc_01time[ieta][ts]->Fill(QIEdelay,QIE11DigiTDC->at(ch).at(ts));
-		TS4_TDC01_crossed[ch_depth][ieta][QIE11DigiIPhi->at(ch)] = 1;
-	      }
-              if (QIE11DigiTDC->at(ch).at(5) == 1) hb_tdc_01time[ieta][ts]->Fill(QIEdelay,QIE11DigiTDC->at(ch).at(5)+1);
-	    }
-	  } // end ieta loop for 2D histogram
 	} // end loop over TS
+	// this does a 2D histogram of TS3 and TS4 TDC values to show transitions
+	
+	for (int ieta = 1; ieta <= 16; ieta++) {
+	  if (QIE11DigiIEta->at(ch) == ieta && ch_depth == 1) {
+	    if (hb_tdc_event.find(ieta) == hb_tdc_event.end()) {
+		hb_tdc_event[ieta] = new TH2D(Form("hb_TDC_iEta_%d_ts4_ts5",ieta),Form("-2: delay1 in TS3, -1: delay2 in TS3, 0,1,2 in TS4, 3,4,5 in TS5 for ieta=%d depth=1",ieta),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,-2,6);
+	      }
+
+	    if (QIE11DigiTDC->at(ch).at(4) != 3) hb_tdc_event[ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(4));
+            if (QIE11DigiTDC->at(ch).at(3) != 3) hb_tdc_event[ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(3)-3);
+            if (QIE11DigiTDC->at(ch).at(5) != 3) hb_tdc_event[ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(5)+3);
+
+	    for (int ts = 4; ts<=5; ts++) {
+	      if (hb_tdc_01time_TS[ts][ieta].find(iphi_group) == hb_tdc_01time_TS[ts][ieta].end()) hb_tdc_01time_TS[ts][ieta][iphi_group] = new TH1D(Form("hb_TDC01_iEta_%d_TS%d_RM%d",ieta,ts,RM),Form("QIE scan time of TDC=01 transition, TS%d, iEta=%d, depth=1, RM%d",ieta,ts,RM),nsScan-nsStart+nsOffset,0,nsScan-nsStart+nsOffset);
+	      if (QIE11DigiTDC->at(ch).at(ts) == 1) hb_tdc_01time_TS[ts][ieta][iphi_group]->Fill(QIEdelay);
+	    }
+	  }
+	} // end ieta loop for 2D histogram
       } // end loop over channels
    } // end loop over nentries
-
+   
    /*
    std::cout << "about to append vectors " << std::endl;
    for (int i = 0; i < HBdepth; i++) {
@@ -309,16 +313,19 @@ void HcalPfgStudies_QIEscan::Loop()
    for (int ieta = 1; ieta <= 16; ieta++) {
      for (std::map<int,TH1D*>::iterator it = hb_tdc[ieta].begin() ; it != hb_tdc[ieta].end(); ++it)
        it->second->Write();
-     for (std::map<int,TH2D*>::iterator it = hb_tdc_event[ieta].begin() ; it != hb_tdc_event[ieta].end(); ++it)
-       it->second->Write();
-     for (std::map<int,TH2D*>::iterator it = hb_tdc_01time[ieta].begin() ; it != hb_tdc_01time[ieta].end(); ++it)
-       it->second->Write();
+     for (int ts = 4; ts <= 5; ts++) {
+       for (std::map<int,TH1D*>::iterator it = hb_tdc_01time_TS[ts][ieta].begin() ; it != hb_tdc_01time_TS[ts][ieta].end(); ++it)
+	 it->second->Write();
+     }
+   }
+   for (std::map<int,TH2D*>::iterator it = hb_tdc_event.begin() ; it != hb_tdc_event.end(); ++it)
+     it->second->Write();
+
      /*
      if (ieta == 1) for (int depth = 1; depth <= 4; depth++) {
 	 for (std::map<int,TH1D*>::iterator it = hb_tdc_depth[ieta][depth].begin() ; it != hb_tdc_depth[ieta][depth].end(); ++it)
 	   it->second->Write();
 	   } */
-   }
    for (std::map<int,TGraph*>::iterator it = PercentDelay1.begin() ; it != PercentDelay1.end(); ++it) it->second->Write();
    for (std::map<int,TGraph*>::iterator it = PercentDelay2.begin() ; it != PercentDelay2.end(); ++it) it->second->Write();
    for (std::map<int,TGraph*>::iterator it = PercentDelay3.begin() ; it != PercentDelay3.end(); ++it) it->second->Write();
