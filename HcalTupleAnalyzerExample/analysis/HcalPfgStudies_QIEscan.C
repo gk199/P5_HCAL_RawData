@@ -42,7 +42,7 @@ void HcalPfgStudies_QIEscan::Loop()
    std::map<int, std::map<int,TH1D*>> hb_tdc;
    std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_depth;
    std::map<int,TH2D*> hb_tdc_event;
-   std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_01time_TS; // [ts][ieta][RM]
+   std::map<int, std::map<int, std::map<int, std::map<int,TH1D*>>>> hb_tdc_01time_TS; // [ts][ieta][RM][depth]
    std::map<int, std::map<int, std::map<int, std::map<int,TH1D*>>>> hb_tdc_01time_ieta_iphi_depth; // [ts][ieta][iphi][depth]
 
    std::map<int,TGraph*> PercentDelay1;
@@ -52,6 +52,9 @@ void HcalPfgStudies_QIEscan::Loop()
    std::map<int, std::map<int, TGraph*>> PercentDelay3_iphi;
    std::map<int, std::map<int, TGraph*>> PeakDelay01;
    std::map<int, std::map<int, TGraph*>> PeakDelay01_ieta;
+
+   const int LEDsetting = 60;
+   TH1D* QIEdelay_40_60_diff = new TH1D("QIEdelay_40_60_diff","QIE delay difference between LED scans, per channel",400,0,40);
 
    const int nsScan = 100;
    int nsStart = 0; 
@@ -66,10 +69,21 @@ void HcalPfgStudies_QIEscan::Loop()
    const int iPhi = 72;
    const int iEta = 16;
 
-   double TS_TDC01_mean[2][iEta][2]; // [ts][ieta][iphi_group]
-   double TS_TDC01_sigma[2][iEta][2];
+   double TS_TDC01_mean[2][iEta][2][HBdepth]; // [ts][ieta][iphi_group][depth]
+   double TS_TDC01_sigma[2][iEta][2][HBdepth];
    double TDC01mean_TS_ieta_iphi_depth[2][iEta][iPhi][HBdepth];
    double TDC01sigma_TS_ieta_iphi_depth[2][iEta][iPhi][HBdepth];
+
+   double LED40_TDC01mean_TS_ieta_iphi_depth[2][iEta][iPhi][HBdepth];
+   double LED40_TDC01sigma_TS_ieta_iphi_depth[2][iEta][iPhi][HBdepth];
+
+   std::ifstream in_mean("TS4_channel_GaussianFitResults_mean.data", std::ios_base::binary);
+   if (!in_mean.read((char*)LED40_TDC01mean_TS_ieta_iphi_depth, sizeof(double)*(2*iEta*iPhi*HBdepth))) // just chekcs that no errors when reading file
+     std::cout << "Error reading in TS4_channel_GaussianFitResults_mean.data file" << std::endl;
+   std::ifstream in_sigma("TS4_channel_GaussianFitResults_sigma.data", std::ios_base::binary);
+   if (!in_sigma.read((char*)LED40_TDC01sigma_TS_ieta_iphi_depth, sizeof(double)*(2*iEta*iPhi*HBdepth)))
+     std::cout << "Error reading in TS4_channel_GaussianFitResults_sigma.data file" << std::endl;
+
 
    std::vector<int> TDC[HBdepth][nsScan / 2];
    std::vector<int> TDC_iphi[HBdepth][iEta][iPhi][nsScan / 2];
@@ -141,19 +155,20 @@ void HcalPfgStudies_QIEscan::Loop()
 	} // end loop over TS
 
 	// this does a 2D histogram of TS3 and TS4 TDC values to show transitions
-	if (ch_depth == 1 && abs(ch_ieta) <= 16) {
-	  if (hb_tdc_event.find(ch_ieta) == hb_tdc_event.end()) {
-	    hb_tdc_event[ch_ieta] = new TH2D(Form("hb_TDC_iEta_%d_ts4_ts5",ch_ieta),Form("-2: delay1 in TS3, -1: delay2 in TS3, 0,1,2 in TS4, 3,4,5 in TS5 for ieta=%d depth=1",ch_ieta),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,-2,6);
-	  }
+	if (abs(ch_ieta) <= 16) {
+	  if (ch_depth == 1 ) { // depth loop for 2D histogram of TS3-TS4-TS5 values
+	    if (hb_tdc_event.find(ch_ieta) == hb_tdc_event.end()) {
+	      hb_tdc_event[ch_ieta] = new TH2D(Form("hb_TDC_iEta_%d_ts4_ts5",ch_ieta),Form("-2: delay1 in TS3, -1: delay2 in TS3, 0,1,2 in TS4, 3,4,5 in TS5 for ieta=%d depth=1",ch_ieta),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,-2,6);
+	    }
 	  
-	  if (QIE11DigiTDC->at(ch).at(4) != 3) hb_tdc_event[ch_ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(4));
-	  if (QIE11DigiTDC->at(ch).at(3) != 3) hb_tdc_event[ch_ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(3)-3);
-	  if (QIE11DigiTDC->at(ch).at(5) != 3) hb_tdc_event[ch_ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(5)+3);
-	  
+	    if (QIE11DigiTDC->at(ch).at(4) != 3) hb_tdc_event[ch_ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(4));
+	    if (QIE11DigiTDC->at(ch).at(3) != 3) hb_tdc_event[ch_ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(3)-3);
+	    if (QIE11DigiTDC->at(ch).at(5) != 3) hb_tdc_event[ch_ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(5)+3);
+	  }// close depth loop
 	  // TODO remove depth, look at all depths
 	  for (int ts = 4; ts<=5; ts++) {
-	    if (hb_tdc_01time_TS[ts][ch_ieta].find(iphi_group) == hb_tdc_01time_TS[ts][ch_ieta].end()) hb_tdc_01time_TS[ts][ch_ieta][iphi_group] = new TH1D(Form("hb_TDC01_iEta_%d_TS%d_RM%d",ch_ieta,ts,RM),Form("QIE scan time of TDC=01 transition, TS%d, iEta=%d, depth=1, RM%d",ts,ch_ieta,RM),nsScan-nsStart+nsOffset,0,nsScan-nsStart+nsOffset);
-	    if (QIE11DigiTDC->at(ch).at(ts) == 1) hb_tdc_01time_TS[ts][ch_ieta][iphi_group]->Fill(QIEdelay);
+	    if (hb_tdc_01time_TS[ts][ch_ieta][iphi_group].find(ch_depth) == hb_tdc_01time_TS[ts][ch_ieta][iphi_group].end()) hb_tdc_01time_TS[ts][ch_ieta][iphi_group][ch_depth] = new TH1D(Form("hb_TDC01_iEta_%d_TS%d_RM%d_depth%d",ch_ieta,ts,RM,ch_depth),Form("QIE scan time of TDC=01 transition, TS%d, iEta=%d, depth=%d, RM%d",ts,ch_ieta,ch_depth,RM),nsScan-nsStart+nsOffset,0,nsScan-nsStart+nsOffset);
+	    if (QIE11DigiTDC->at(ch).at(ts) == 1) hb_tdc_01time_TS[ts][ch_ieta][iphi_group][ch_depth]->Fill(QIEdelay);
 	    
 	    if (hb_tdc_01time_ieta_iphi_depth[ts][ch_ieta][ch_iphi].find(ch_depth) == hb_tdc_01time_ieta_iphi_depth[ts][ch_ieta][ch_iphi].end()) hb_tdc_01time_ieta_iphi_depth[ts][ch_ieta][ch_iphi][ch_depth] = new TH1D(Form("hb_TDC01_iEta%d_iPhi%d_Depth%d_TS%d",ch_ieta, ch_iphi, ch_depth, ts),Form("QIE scan time of TDC=01 transition, TS%d, iEta=%d, iPhi=%d, depth=%d",ts, ch_ieta, ch_iphi, ch_depth),nsScan-nsStart+nsOffset,0,nsScan-nsStart+nsOffset);
 	    if(QIE11DigiTDC->at(ch).at(ts) == 1) hb_tdc_01time_ieta_iphi_depth[ts][ch_ieta][ch_iphi][ch_depth]->Fill(QIEdelay);
@@ -271,7 +286,7 @@ void HcalPfgStudies_QIEscan::Loop()
    }
 
    // output file for histograms
-   TFile file_out("hcal_histograms_QIEscan.root","RECREATE");
+   TFile file_out(Form("hcal_histograms_QIEscan_LED%d.root",LEDsetting),"RECREATE");
 
    // write histograms to output file
    for (int depth = 0; depth < 1; depth++) { //HBdepth; depth++) {
@@ -291,26 +306,28 @@ void HcalPfgStudies_QIEscan::Loop()
      for (std::map<int,TH1D*>::iterator it = hb_tdc[ieta].begin() ; it != hb_tdc[ieta].end(); ++it)
        it->second->Write();
 
-     TF1* fit_TS4 = new TF1("fit_TS4","gaus",70,90);
-     TF1* fit_TS5 = new TF1("fit_TS5","gaus",5,25);
+     TF1* fit_TS4 = new TF1("fit_TS4","gaus",25+LEDsetting,50+LEDsetting);
+     TF1* fit_TS5 = new TF1("fit_TS5","gaus",LEDsetting-40,LEDsetting-15);
 
      for (int ts = 4; ts <= 5; ts++) {
-       for (std::map<int,TH1D*>::iterator it = hb_tdc_01time_TS[ts][ieta].begin() ; it != hb_tdc_01time_TS[ts][ieta].end(); ++it) {
-	 // need to know which iphi_group (RM) we are on. first time in loop is iphi_group0 probably
-	 int iphi_group = it->first; // iphi_group is the key, the histogram is the value (key-value pair)
-
-	 if (ts == 4) {
-	   it->second->Fit(fit_TS4,"RLQ"); // L for log likelihood method (when histogram represents counts)
-	   TS_TDC01_mean[0][ieta-1][iphi_group] = fit_TS4->GetParameter(1);
-           TS_TDC01_sigma[0][ieta-1][iphi_group] = fit_TS4->GetParameter(2);
+       for (int iphi_group = 0; iphi_group <= 1; iphi_group++) {
+	 for (std::map<int,TH1D*>::iterator it = hb_tdc_01time_TS[ts][ieta][iphi_group].begin() ; it != hb_tdc_01time_TS[ts][ieta][iphi_group].end(); ++it) {
+	   int depth = it->first; // iphi_group is the key, the histogram is the value (key-value pair)
+	   
+	   if (ts == 4) {
+	     it->second->Fit(fit_TS4,"RLQ"); // L for log likelihood method (when histogram represents counts)
+	     TS_TDC01_mean[0][ieta-1][iphi_group][depth-1] = fit_TS4->GetParameter(1);
+	     TS_TDC01_sigma[0][ieta-1][iphi_group][depth-1] = fit_TS4->GetParameter(2);
+	   }
+	   if (ts == 5) {
+	     it->second->Fit(fit_TS5,"RLQ"); 
+	     TS_TDC01_mean[1][ieta-1][iphi_group][depth-1] = fit_TS5->GetParameter(1);
+	     TS_TDC01_sigma[1][ieta-1][iphi_group][depth-1] = fit_TS5->GetParameter(2); // could also get errors on these parameters
+	   }
+	   it->second->Write();
 	 }
-	 if (ts == 5) {
-	   it->second->Fit(fit_TS5,"RLQ"); 
-	   TS_TDC01_mean[1][ieta-1][iphi_group] = fit_TS5->GetParameter(1);
-           TS_TDC01_sigma[1][ieta-1][iphi_group] = fit_TS5->GetParameter(2); // could also get errors on these parameters
-	 }
-	 it->second->Write();
-       }
+       } // iphi_group loop
+       
        
        for (int iphi = 1; iphi <= 72; iphi++) {
 	 for (std::map<int,TH1D*>::iterator it = hb_tdc_01time_ieta_iphi_depth[ts][ieta][iphi].begin() ; it != hb_tdc_01time_ieta_iphi_depth[ts][ieta][iphi].end(); ++it) {
@@ -319,30 +336,37 @@ void HcalPfgStudies_QIEscan::Loop()
 	     it->second->Fit(fit_TS4,"RLQ");
 	     TDC01mean_TS_ieta_iphi_depth[0][ieta-1][iphi-1][depth-1] = fit_TS4->GetParameter(1);
              TDC01sigma_TS_ieta_iphi_depth[0][ieta-1][iphi-1][depth-1] = fit_TS4->GetParameter(2);
+             if (LEDsetting == 60) QIEdelay_40_60_diff->Fill(TDC01mean_TS_ieta_iphi_depth[0][ieta-1][iphi-1][depth-1] - LED40_TDC01mean_TS_ieta_iphi_depth[0][ieta-1][iphi-1][depth-1]);
 	   }
 	   if (ts == 5) {
 	     it->second->Fit(fit_TS5,"RLQ");
              TDC01mean_TS_ieta_iphi_depth[1][ieta-1][iphi-1][depth-1] = fit_TS4->GetParameter(1);
              TDC01sigma_TS_ieta_iphi_depth[1][ieta-1][iphi-1][depth-1] = fit_TS4->GetParameter(2); // how to figure out which depth I'm in? same question as above, how to determine which iphi_group
+             if (LEDsetting == 60) QIEdelay_40_60_diff->Fill(TDC01mean_TS_ieta_iphi_depth[1][ieta-1][iphi-1][depth-1] - LED40_TDC01mean_TS_ieta_iphi_depth[1][ieta-1][iphi-1][depth-1]);
 	   }
 	 } 
        } 
      } // end ts loop
-     std::cout << "ieta = " << ieta << ", with fit mean on TS4, RM34 = " << TS_TDC01_mean[0][ieta-1][1] << std::endl;
-     std::cout << "         , with fit sigma on TS4, RM34 = " << TS_TDC01_sigma[0][ieta-1][1] << std::endl;
-     std::cout << "ieta = " << ieta << ", with fit mean on TS4, RM12 = " << TS_TDC01_mean[0][ieta-1][0] << std::endl;
-     std::cout << "         , with fit sigma on TS4, RM12 = " << TS_TDC01_sigma[0][ieta-1][0] << std::endl;
+     // only do printouts for depth=1
+     std::cout << "ieta = " << ieta << ", with fit mean on TS4, RM34 = " << TS_TDC01_mean[0][ieta-1][1][0] << std::endl;
+     std::cout << "         , with fit sigma on TS4, RM34 = " << TS_TDC01_sigma[0][ieta-1][1][0] << std::endl;
+     std::cout << "ieta = " << ieta << ", with fit mean on TS4, RM12 = " << TS_TDC01_mean[0][ieta-1][0][0] << std::endl;
+     std::cout << "         , with fit sigma on TS4, RM12 = " << TS_TDC01_sigma[0][ieta-1][0][0] << std::endl;
 
-     TS4_GaussianFitResults << ieta << ", RM12" << ", " << TS_TDC01_mean[0][ieta-1][1] << ", " << TS_TDC01_sigma[0][ieta-1][1] << " \n";
-     TS4_GaussianFitResults << ieta << ", RM34" << ", " << TS_TDC01_mean[0][ieta-1][0] << ", " << TS_TDC01_sigma[0][ieta-1][0] << " \n";
-
+     TS4_GaussianFitResults << ieta << ", RM12" << ", " << TS_TDC01_mean[0][ieta-1][1][0] << ", " << TS_TDC01_sigma[0][ieta-1][1] << " \n";
+     TS4_GaussianFitResults << ieta << ", RM34" << ", " << TS_TDC01_mean[0][ieta-1][0][0] << ", " << TS_TDC01_sigma[0][ieta-1][0] << " \n";
 
    } // end ieta loop 1-16
    TS4_GaussianFitResults.close();
 
-   std::ofstream out("TS4_channel_GaussianFitResults.data", std::ios_base::binary);
-   out.write((char*)TDC01sigma_TS_ieta_iphi_depth, sizeof(double)*(2*iEta*iPhi*HBdepth));
-
+   if (LEDsetting == 60) QIEdelay_40_60_diff->Write();
+   if (LEDsetting == 40) {
+     std::ofstream out_mean("TS4_channel_GaussianFitResults_mean.data", std::ios_base::binary);
+     out_mean.write((char*)TDC01mean_TS_ieta_iphi_depth, sizeof(double)*(2*iEta*iPhi*HBdepth));
+     
+     std::ofstream out_sigma("TS4_channel_GaussianFitResults_sigma.data", std::ios_base::binary);
+     out_sigma.write((char*)TDC01sigma_TS_ieta_iphi_depth, sizeof(double)*(2*iEta*iPhi*HBdepth));
+   }
 
    for (std::map<int,TH2D*>::iterator it = hb_tdc_event.begin() ; it != hb_tdc_event.end(); ++it)
      it->second->Write();
