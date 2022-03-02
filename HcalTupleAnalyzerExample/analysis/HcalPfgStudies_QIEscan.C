@@ -97,7 +97,7 @@ void HcalPfgStudies_QIEscan::Loop()
 	std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
 	power++;
       }
-      //      if ((jentry+1) % 100 != 0) continue;
+      if ((jentry+1) % 100 != 0) continue;
 
       int QIEdelay = jentry / nsSpacing;
       if (jentry >= 5000) QIEdelay = jentry / nsSpacing + nsOffset + nsStart;
@@ -371,6 +371,22 @@ void HcalPfgStudies_QIEscan::Loop()
    for (std::map<int,TH2D*>::iterator it = hb_tdc_event.begin() ; it != hb_tdc_event.end(); ++it)
      it->second->Write();
    
+
+   // writing to latex table for the ieta, depth QIE delays
+   std::ofstream iEta_Depth_QIEdelay;
+   for (int iphi_group = 0; iphi_group <= 1; iphi_group++) {
+     int RM = 0;
+     if (iphi_group == 0) RM = 12;
+     if (iphi_group == 1) RM = 34;
+     iEta_Depth_QIEdelay.open(Form("iEta_Depth_QIEdelay_LED%d_RM%d.txt",LEDsetting,RM),std::ios_base::trunc);
+     iEta_Depth_QIEdelay << "\\begin{table}[ht] \n \\centering \n \\begin{tabular}{ |c|c|c|c|c| } \n \\hline \n $\\abs{i\\eta}$ & Depth 1 & Depth 2 & Depth 3 & Depth 4 \\\\ \n \\hline \n";
+     for (int ieta = 1; ieta <= 16; ieta++) {
+       iEta_Depth_QIEdelay << ieta << " & " << std::setprecision(3) << TS_TDC01_mean[0][ieta-1][iphi_group][0]<< " & " << std::setprecision(3) << TS_TDC01_mean[0][ieta-1][iphi_group][1] << " & " << std::setprecision(3) << TS_TDC01_mean[0][ieta-1][iphi_group][2] << " & " << std::setprecision(3) << TS_TDC01_mean[0][ieta-1][iphi_group][3] << " \\\\ \n";
+     }
+     iEta_Depth_QIEdelay << "\\hline \n \\end{tabular} \\caption{QIE delay table for LED delay = " << LEDsetting << ", and RM = " << RM << ".} \n \\label{table:QIEdelay_table} \n \\end{table}";
+     iEta_Depth_QIEdelay.close();
+   }
+
    /*
      if (ieta == 1) for (int depth = 1; depth <= 4; depth++) {
      for (std::map<int,TH1D*>::iterator it = hb_tdc_depth[ieta][depth].begin() ; it != hb_tdc_depth[ieta][depth].end(); ++it)
