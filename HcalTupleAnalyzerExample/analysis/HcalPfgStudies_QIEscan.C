@@ -53,7 +53,8 @@ void HcalPfgStudies_QIEscan::Loop()
    std::map<int, std::map<int, TGraph*>> PeakDelay01;
    std::map<int, std::map<int, TGraph*>> PeakDelay01_ieta;
 
-   const int LEDsetting = 40;
+   const int LEDsetting = 60;
+   TH1D* QIEPeakdelay_40_60_diff_TS4_RM = new TH1D("QIEPeakdelay_40_60_diff_TS4_RM","QIE delay difference between LED scans, per channel, TS4, based on peak 01",400,0,40);
    TH1D* QIEdelay_40_60_diff_TS4 = new TH1D("QIEdelay_40_60_diff_TS4","QIE delay difference between LED scans, per channel, TS4",400,0,40);
    TH1D* QIEdelay_40_60_diff_TS5 = new TH1D("QIEdelay_40_60_diff_TS5","QIE delay difference between LED scans, per channel, TS5",400,0,40);
    TH1D* QIEdelay_40_60_diff_TS4_RM = new TH1D("QIEdelay_40_60_diff_TS4_RM","QIE delay difference between LED scans, per ieta,depth,RM, in TS4",400,0,40);
@@ -81,6 +82,7 @@ void HcalPfgStudies_QIEscan::Loop()
    double LED40_TDC01sigma_TS_ieta_iphi_depth[2][iEta][iPhi][HBdepth];
    double LED40_TS_TDC01_mean[2][iEta][2][HBdepth];
    double LED40_TS_TDC01_sigma[2][iEta][2][HBdepth];
+   int LED40_peakDelayed01[HBdepth][iEta][iPhi];
 
    std::ifstream in_mean("TS4_channel_GaussianFitResults_mean.data", std::ios_base::binary);
    if (!in_mean.read((char*)LED40_TDC01mean_TS_ieta_iphi_depth, sizeof(double)*(2*iEta*iPhi*HBdepth))) // just chekcs that no errors when reading file
@@ -94,6 +96,9 @@ void HcalPfgStudies_QIEscan::Loop()
    std::ifstream in_sigma_RM("TS4_channel_GaussianFitResults_sigma_RM.data", std::ios_base::binary);
    if (!in_sigma_RM.read((char*)LED40_TS_TDC01_sigma, sizeof(double)*(2*iEta*2*HBdepth)))
      std::cout << "Error reading in TS4_channel_GaussianFitResults_sigma_RM.data file" << std::endl;
+   std::ifstream in_peakDelayed01("peakDelayed01.data", std::ios_base::binary);
+   if (!in_peakDelayed01.read((char*)LED40_peakDelayed01, sizeof(int)*(HBdepth*iEta*iPhi)))
+     std::cout << "Error reading in TS4_peakDelayed01.data file" << std::endl;
 
    std::vector<int> TDC[HBdepth][nsScan / 2];
    std::vector<int> TDC_iphi[HBdepth][iEta][iPhi][nsScan / 2];
@@ -107,7 +112,7 @@ void HcalPfgStudies_QIEscan::Loop()
 	std::cout << "Processing event " << jentry+1 << "/" << nentries << std::endl;
 	power++;
       }
-      if ((jentry+1) % 10 != 0) continue;
+      //      if ((jentry+1) % 10 != 0) continue;
 
       int QIEdelay = jentry / nsSpacing;
       if (jentry >= 5000) QIEdelay = jentry / nsSpacing + nsOffset + nsStart;
@@ -277,6 +282,8 @@ void HcalPfgStudies_QIEscan::Loop()
 	 iPhi_pos[iphi] = iphi + 1; // 1-72
 	 peakDelayed01[depth][ieta][iphi] = distance(PercentTDC3_iphi[depth][ieta][iphi], max_element(PercentTDC3_iphi[depth][ieta][iphi], PercentTDC3_iphi[depth][ieta][iphi] + nsScan)); // for each cell, determine at what LED delay scan (in ns) the 01 peak occurs at // to make this QIE phase delay, do + nsOffset + 50 or similar (TODO) and different if before or after split
 	   peakDelayed01_ieta[depth][iphi][ieta] = peakDelayed01[depth][ieta][iphi]; // use this to plot vs ieta
+
+	   if (LEDsetting == 60) QIEPeakdelay_40_60_diff_TS4_RM->Fill(peakDelayed01[depth][ieta][iphi] - LED40_peakDelayed01[depth][ieta][iphi]);
        } // iphi loop 0-71
        PeakDelay01[depth][ieta] = new TGraph(iPhi,iPhi_pos,peakDelayed01[depth][ieta]);
        PeakDelay01[depth][ieta]->SetNameTitle(Form("PeakDelay01_Depth%d_iEta%d",depth+1,ieta+1), Form("LED scan time (ns) where peak TDC=01 occurs vs iPhi (ieta=%d, depth=%d)",ieta+1,depth+1));
@@ -376,6 +383,7 @@ void HcalPfgStudies_QIEscan::Loop()
    TS4_GaussianFitResults.close();
 
    if (LEDsetting == 60) {
+     QIEPeakdelay_40_60_diff_TS4_RM->Write();
      QIEdelay_40_60_diff_TS4->Write();
      QIEdelay_40_60_diff_TS5->Write();
      QIEdelay_40_60_diff_TS4_RM->Write(); 
@@ -394,6 +402,9 @@ void HcalPfgStudies_QIEscan::Loop()
 
      std::ofstream out_sigma_RM("TS4_channel_GaussianFitResults_sigma_RM.data", std::ios_base::binary);
      out_sigma_RM.write((char*)TS_TDC01_sigma, sizeof(double)*(2*iEta*2*HBdepth));
+
+     std::ofstream out_peakDelayed01("peakDelayed01.data", std::ios_base::binary);
+     out_peakDelayed01.write((char*)peakDelayed01, sizeof(int)*(HBdepth*iEta*iPhi));
    }
 
    for (std::map<int,TH2D*>::iterator it = hb_tdc_event.begin() ; it != hb_tdc_event.end(); ++it)
