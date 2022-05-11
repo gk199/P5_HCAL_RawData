@@ -204,6 +204,7 @@ void HcalTupleMaker_QIE11Digis::produce(edm::Event& iEvent, const edm::EventSetu
 
       // Extract info on detector location
       DetId detid = qie11df.detid();
+      std::cout << qie11df.presamples() << " = qie11df.presamples() in HcalTupleMaker_QIE11Digis.cc, and qie11df.samples() = " << qie11df.samples() << std::endl;
       HcalDetId hcaldetid = HcalDetId(detid);
 
       // Protection against calibration channels which are not

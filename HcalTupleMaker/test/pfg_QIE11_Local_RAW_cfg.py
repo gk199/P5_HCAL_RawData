@@ -26,13 +26,15 @@ options.register('processEvents',
 
 options.register('inputFiles',
                  #"file:inputFile.root", #default value
-                 "file:/eos/cms/store/group/dpg_hcal/comm_hcal/USC/run346603/USC_346603.root",
+                 #"file:/eos/cms/store/group/dpg_hcal/comm_hcal/USC/run346603/USC_346603.root",
+                 "file:/eos/cms/store/group/dpg_hcal/comm_hcal/USC/run347751/USC_347751.root", #347751 #347746
                  VarParsing.VarParsing.multiplicity.list,
                  VarParsing.VarParsing.varType.string,
                  "Input files")
 
 options.register('outputFile',
-                 "file:outputFile_run346603_full.root", #default value
+                 #"file:outputFile_run346603_full.root", #default value
+                 "file:outputFile_run347751_test.root",
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  "Output file")
@@ -124,7 +126,7 @@ process.qie11Digis.InputLabel = cms.InputTag("source")
 #------------------------------------------------------------------------------------
 #process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-process.GlobalTag.globaltag = '120X_dataRun3_HLT_v3' #  '120X_dataRun3_Prompt_v2' #100X_dataRun2_HLT_v3' #'100X_dataRun2_HLT_v2_TESTHcalv2'#'100X_dataRun2_v1'
+process.GlobalTag.globaltag = '123X_dataRun3_HLT_v7' #'120X_dataRun3_HLT_v3' #  '120X_dataRun3_Prompt_v2' #100X_dataRun2_HLT_v3' #'100X_dataRun2_HLT_v2_TESTHcalv2'#'100X_dataRun2_v1'
 
 #------------------------------------------------------------------------------------
 # HcalTupleMaker sequence definition
