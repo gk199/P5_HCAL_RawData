@@ -8,4 +8,6 @@ HCAL local runs were taken with a LED scan to check the TDC-LUTs loaded in HB. T
 Data - emulator comparision for the fine grain bits is done in `/afs/cern.ch/work/g/gkopp/MWGR/CMSSW_12_3_0/src/Debug/HcalDebug`, and connected to the branch of the hcal-debug github [here](https://github.com/gk199/cms-hcal-debug/tree/Data-Emu_LEDscan). 
 
 ## lxplus Location
-This work is done in `/afs/cern.ch/work/g/gkopp/MWGR/CMSSW_12_0_0/src/HCALPFG/`. 
+This work is done in `/afs/cern.ch/work/g/gkopp/MWGR/CMSSW_12_0_0/src/HCALPFG/`. November, February, and June 2022 LED scans are processed here. 
+
+For 900 GeV processing, a similar framework is used, and this work is done in an updated area `/afs/cern.ch/work/g/gkopp/MWGR/CMSSW_12_3_4_patch2/src/HCALPFG/HcalTupleAnalyzer/macros`. 
