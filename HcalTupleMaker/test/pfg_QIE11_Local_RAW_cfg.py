@@ -27,14 +27,18 @@ options.register('processEvents',
 options.register('inputFiles',
                  #"file:inputFile.root", #default value
                  #"file:/eos/cms/store/group/dpg_hcal/comm_hcal/USC/run346603/USC_346603.root",
-                 "file:/eos/cms/store/group/dpg_hcal/comm_hcal/USC/run347751/USC_347751.root", #347751 #347746
+                 #"file:/eos/cms/store/group/dpg_hcal/comm_hcal/USC/run347751/USC_347751.root", #347751 #347746 # these are LED QIE scans
+                 "file:/eos/cms/store/group/dpg_hcal/comm_hcal/USC/run353176/USC_353176.root",
+#                 "file:/eos/cms/store/group/dpg_hcal/comm_hcal/Run2022A/MinimumBias/RAW/v1/000/352/493/00000/12bcfdcd-4c02-4bc0-b5b7-2f19096f9ba2.root", # this is from HCAL QIE phase scan in 900 GeV collisions
                  VarParsing.VarParsing.multiplicity.list,
                  VarParsing.VarParsing.varType.string,
                  "Input files")
 
 options.register('outputFile',
                  #"file:outputFile_run346603_full.root", #default value
-                 "file:outputFile_run347751_test.root",
+                 #"file:outputFile_run347751_test_7jun.root",
+                 "file:outputFile_run353176.root",
+                 #"HcalTupleMaker_Run2022A_QIEphase.root", 
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
                  "Output file")

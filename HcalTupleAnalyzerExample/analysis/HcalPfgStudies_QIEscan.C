@@ -42,6 +42,7 @@ void HcalPfgStudies_QIEscan::Loop()
    std::map<int, std::map<int,TH1D*>> hb_tdc;
    std::map<int, std::map<int, std::map<int,TH1D*>>> hb_tdc_depth;
    std::map<int,TH2D*> hb_tdc_event;
+   std::map<int,std::map<int,TH2D*>> hb_tdc_event_ieta_iphi;
    std::map<int,TH2D*> hb_adc_event;
    std::map<int, std::map<int, std::map<int, std::map<int,TH1D*>>>> hb_tdc_01time_TS; // [ts][ieta][RM][depth]
    std::map<int, std::map<int, std::map<int, std::map<int,TH1D*>>>> hb_tdc_01time_ieta_iphi_depth; // [ts][ieta][iphi][depth]
@@ -55,7 +56,7 @@ void HcalPfgStudies_QIEscan::Loop()
    std::map<int, std::map<int, TGraph*>> PeakDelay01;
    std::map<int, std::map<int, TGraph*>> PeakDelay01_ieta;
 
-   const int LEDsetting = 60;
+   const int LEDsetting = 40;
    TH1D* QIEPeakdelay_40_60_diff_TS4_RM = new TH1D("QIEPeakdelay_40_60_diff_TS4_RM","QIE delay difference between LED scans, per channel, TS4, based on peak 01",400,0,40);
    TH1D* QIEdelay_40_60_diff_TS4 = new TH1D("QIEdelay_40_60_diff_TS4","QIE delay difference between LED scans, per channel, TS4",400,0,40);
    TH1D* QIEdelay_40_60_diff_TS5 = new TH1D("QIEdelay_40_60_diff_TS5","QIE delay difference between LED scans, per channel, TS5",400,0,40);
@@ -148,12 +149,12 @@ void HcalPfgStudies_QIEscan::Loop()
 	  RM = 12;
 	}
 
-	/*
-	if (ch_ieta == 1 && ch_iphi == 1 && jentry < 200) {
+	
+	if (ch_ieta == 1 && ch_iphi == 1 && ((jentry > 8000 && jentry < 8020) || (jentry > 3000 && jentry < 3020) || (jentry > 6050 && jentry < 6070))) { //jentry < 200) {
 	  std::cout << "depth = " << ch_depth << std::endl;
 	  std::cout << "for event = " << jentry << " ADC in each TS = " << QIE11DigiADC->at(ch).at(0) << ", " << QIE11DigiADC->at(ch).at(1) << ", " << QIE11DigiADC->at(ch).at(2) << ", " << QIE11DigiADC->at(ch).at(3) << ", " << QIE11DigiADC->at(ch).at(4) << ", " << QIE11DigiADC->at(ch).at(5) << ", " << QIE11DigiADC->at(ch).at(6) << ", " << QIE11DigiADC->at(ch).at(7) << std::endl;
 	  std::cout << "for event = " << jentry << " TDC in each TS = " << QIE11DigiTDC->at(ch).at(0) << ", " << QIE11DigiTDC->at(ch).at(1) << ", " << QIE11DigiTDC->at(ch).at(2) << ", " << QIE11DigiTDC->at(ch).at(3) << ", " << QIE11DigiTDC->at(ch).at(4) << ", " << QIE11DigiTDC->at(ch).at(5) << ", " << QIE11DigiTDC->at(ch).at(6) << ", " << QIE11DigiTDC->at(ch).at(7) << std::endl;
-	  } */
+	} 
 
 	for (int ts = 2; ts <= 6; ts++) {	
 	  // TDC all channels each TS
@@ -197,6 +198,12 @@ void HcalPfgStudies_QIEscan::Loop()
 	    if (hb_tdc_event.find(ch_ieta) == hb_tdc_event.end()) {
 	      hb_tdc_event[ch_ieta] = new TH2D(Form("hb_TDC_iEta_%d_ts4_ts5",ch_ieta),Form("-2: delay1 in TS3, -1: delay2 in TS3, 0,1,2 in TS4, 3,4,5 in TS5 for ieta=%d depth=1",ch_ieta),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,-2,6);
 	    }
+	    if (ch_ieta == 1 && ch_iphi < 8){
+	      if (hb_tdc_event_ieta_iphi[ch_ieta].find(ch_iphi) == hb_tdc_event_ieta_iphi[ch_ieta].end()) {
+		hb_tdc_event_ieta_iphi[ch_ieta][ch_iphi] = new TH2D(Form("hb_TDC_iEta%d_iPhi%d",ch_ieta,ch_iphi),Form("-2: delay1 in TS3, -1: delay2 in TS3, 0,1,2 in TS4, 3,4,5 in TS5 for ieta=%d iphi=%d depth=1",ch_ieta,ch_iphi),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,-2,6);
+	      }
+	    }
+
             if (hb_adc_event.find(ch_ieta) == hb_adc_event.end()) {
               hb_adc_event[ch_ieta] = new TH2D(Form("hb_ADC_iEta_%d_ts4_ts5",ch_ieta),Form("Max ADC TS for ieta=%d, iphi=1, depth=1",ch_ieta),nsScan-nsStart,0,(nsScan-nsStart)*100, 8,0,8);
             }
@@ -213,6 +220,11 @@ void HcalPfgStudies_QIEscan::Loop()
 	    if (QIE11DigiTDC->at(ch).at(4) != 3) hb_tdc_event[ch_ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(4));
 	    if (QIE11DigiTDC->at(ch).at(3) != 3) hb_tdc_event[ch_ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(3)-3);
 	    if (QIE11DigiTDC->at(ch).at(5) != 3) hb_tdc_event[ch_ieta]->Fill(jentry,QIE11DigiTDC->at(ch).at(5)+3);
+	    if (ch_ieta == 1 && ch_iphi < 8){
+	      if (QIE11DigiTDC->at(ch).at(4) != 3) hb_tdc_event_ieta_iphi[ch_ieta][ch_iphi]->Fill(jentry,QIE11DigiTDC->at(ch).at(4));
+	      if (QIE11DigiTDC->at(ch).at(3) != 3) hb_tdc_event_ieta_iphi[ch_ieta][ch_iphi]->Fill(jentry,QIE11DigiTDC->at(ch).at(3)-3);
+	      if (QIE11DigiTDC->at(ch).at(5) != 3) hb_tdc_event_ieta_iphi[ch_ieta][ch_iphi]->Fill(jentry,QIE11DigiTDC->at(ch).at(5)+3);
+	    }
 	  }// close depth loop
 	  // TODO remove depth, look at all depths
 	  for (int ts = 4; ts<=5; ts++) {
@@ -345,7 +357,7 @@ void HcalPfgStudies_QIEscan::Loop()
    }
 
    // output file for histograms
-   TFile file_out(Form("hcal_histograms_QIEscan_LED%d.root",LEDsetting),"RECREATE");
+   TFile file_out(Form("hcal_histograms_353176_QIEscan_LED%d.root",LEDsetting),"RECREATE");
 
    // write histograms to output file
    for (int depth = 0; depth < 1; depth++) { //HBdepth; depth++) {
@@ -475,6 +487,10 @@ void HcalPfgStudies_QIEscan::Loop()
 
    for (std::map<int,TH2D*>::iterator it = hb_tdc_event.begin() ; it != hb_tdc_event.end(); ++it)
      it->second->Write();
+
+   for (std::map<int,TH2D*>::iterator it = hb_tdc_event_ieta_iphi[1].begin() ; it != hb_tdc_event_ieta_iphi[1].end(); ++it)
+     it->second->Write();
+
    for (std::map<int,TH2D*>::iterator it = hb_adc_event.begin() ; it != hb_adc_event.end(); ++it)
      it->second->Write();
    

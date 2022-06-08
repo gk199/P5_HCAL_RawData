@@ -39,3 +39,11 @@ root -l -q -b process_events.C
 cd HcalTupleAnalyzerExample/plots  
 root -l -q -b plot_hf.C  
 ```
+
+## Specifics for LED scan analysis
+```
+/afs/cern.ch/work/g/gkopp/MWGR/CMSSW_12_0_0/src/HCALPFG/HcalTupleAnalyzerExample/analysis
+emacs HcalPfgStudies_QIEscan.C
+root -l -q -b process_events_QIEscan.C
+```
+This is used for the Feb 2022 LED scan to see the RAW TDC information. June 2022 LED scan is also analyzed here. The global tag `123X_dataRun3_HLT_v7` is set in the HcalTupleMaker. 
