@@ -1,21 +1,21 @@
 # P5_HCAL_RawData
 This is used to analyze the 900 GeV collision data when QIE phase scans were taken for the time alignment of the HCAL. PFG ntuples are already created following the [HCAL tuple maker](https://gitlab.cern.ch/cmshcal/hcalpfg/HcalTupleMaker/-/tree/PFG-CMSSW_12_3_X/) and saved to `/eos/cms//store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/`. In the ntuple, there is a branch called `laserType`, which is the phase delay setting. This corresponds to the QIE phase delay below:
 
-ns  setting
-------------
--24    2
--20   10
--16   18
--12   26
--8    34
--4    42
- 0    64
- 4    72
- 8    80
-12    88
-16    96
-20   104
-24   112
+| ns    | setting |
+| ------|------ |
+| -24 |   2	|
+| -20 |  10	|
+| -16 |  18	|
+| -12 |  26	|
+| -8  |  34	|
+| -4  |  42	|
+|  0  |  64	|
+|  4  |  72	|
+|  8  |  80	|
+| 12  |  88	|
+| 16  |  96	|
+| 20  |  104	|
+| 24  |  112	|
 
 Note that the laserType 999 should be ignored - this is used to mark a time when the settings are applied at the front-end.
 
