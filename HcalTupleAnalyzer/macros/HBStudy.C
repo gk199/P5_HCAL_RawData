@@ -160,36 +160,33 @@
   }
   
   TFile file_out(Form("hcal_histograms_900gev_QIEscan.root"),"RECREATE");
-  
+
   // TDC rates in HB, efficency plots
   // HB Error code plots
   TCanvas *cHB_err_ieta; // declare new canvas
-  //  for (int ieta = -16; ieta <= 16; ieta++) {
-  //    if (ieta == 0) continue;
-  int ieta = 1;
-  cHB_err_ieta = new TCanvas(); // reset canvas
-  //  for (std::map<int,TH1F*>::iterator it = HB_tdc3_ieta[ieta].begin() ; it != HB_tdc3_ieta[ieta].end(); ++it) { // it->first is TS, it->second is TH1F HB_tdc3_ieta
-  //    if (TEfficiency::CheckConsistency(*it->second,*HB_ieta[ieta][it->first])) {
-  //      TEfficiency *effHB = new TEfficiency(*it->second,*HB_ieta[ieta][it->first]);
-  if (TEfficiency::CheckConsistency(*HB_tdc3_ieta[ieta][3],*HB_ieta[ieta][3])) {
-    TEfficiency *effHB = new TEfficiency(*HB_tdc3_ieta[ieta][3],*HB_ieta[ieta][3]);
-    effHB->SetTitle(Form("Error Code TDC=3 Rates in HB, 2022 900 GeV data (with ADC>64) (ieta=%d)",ieta));
-    effHB->SetLineWidth(2.);
-    //      if (it->first == 2) effHB->SetLineColor(kGreen);
-    //      if (it->first == 3) effHB->SetLineColor(kBlack);
-    //      if (it->first == 4) effHB->SetLineColor(kBlue);
-    //      if (it->first == 2) effHB->Draw();
-    //      if (it->first > 2) effHB->Draw("SAME");
-    effHB->SetLineColor(kBlack);
-    effHB->Draw();
-    gPad->SetLogy();
-    gPad->Update();
-    effHB->GetPaintedGraph()->SetMaximum(1);
-    effHB->GetPaintedGraph()->SetMinimum(0.);
-    gPad->Update();
-    cHB_err_ieta->SaveAs(Form("2022_plots/HB_TDCerror_2022_900gev_ieta%d_TS%d.png",ieta,3)); //it->first));
-    //    }
-    //    }
+  for (int ieta = -16; ieta <= 16; ieta++) {
+    if (ieta == 0) continue;
+    cHB_err_ieta = new TCanvas(); // reset canvas
+    for (std::map<int,TH1F*>::iterator it = HB_tdc3_ieta[ieta].begin() ; it != HB_tdc3_ieta[ieta].end(); ++it) { // it->first is TS, it->second is TH1F HB_tdc3_ieta
+      if (TEfficiency::CheckConsistency(*it->second,*HB_ieta[ieta][it->first])) {
+	TEfficiency *effHB = new TEfficiency(*it->second,*HB_ieta[ieta][it->first]);
+	HB_tdc3_ieta[ieta][3]->Write();
+	HB_ieta[ieta][3]->Write();
+	effHB->SetTitle(Form("Error Code TDC=3 Rates in HB, 2022 900 GeV data (with ADC>50) (ieta=%d)",ieta));
+	effHB->SetLineWidth(2.);
+	if (it->first == 2) effHB->SetLineColor(kGreen);
+	if (it->first == 3) effHB->SetLineColor(kBlack);
+	if (it->first == 4) effHB->SetLineColor(kBlue);
+	if (it->first == 2) effHB->Draw();
+	if (it->first > 2) effHB->Draw("SAME");
+	gPad->SetLogy();
+	gPad->Update();
+	effHB->GetPaintedGraph()->SetMaximum(1);
+	effHB->GetPaintedGraph()->SetMinimum(0.);
+	gPad->Update();
+	cHB_err_ieta->SaveAs(Form("2022_plots/HB_TDCerror_2022_900gev_ieta%d_TS%d.png",ieta,it->first));
+      }
+    }
   }
   
   // all ieta, adc > 64
@@ -197,7 +194,9 @@
   for (std::map<int,TH1F*>::iterator it = HB_tdc3_adc64_byTS.begin() ; it != HB_tdc3_adc64_byTS.end(); ++it) { // it->first is TS, it->second is TH1F HB_tdc3_adc64_byTS
     if (TEfficiency::CheckConsistency(*it->second,*HB_adc64_byTS[it->first])) {
       TEfficiency *effHB = new TEfficiency(*it->second,*HB_adc64_byTS[it->first]);
-      effHB->SetTitle("Error Code TDC=3 Rates in HB, 2022 900 GeV data (channels with ADC>64)");
+      HB_adc64_byTS[it->first]->Write();
+      it->second->Write();
+      effHB->SetTitle("Error Code TDC=3 Rates in HB, 2022 900 GeV data (channels with ADC>50)");
       effHB->SetLineWidth(2.);
       if (it->first == 2) effHB->SetLineColor(kGreen);
       if (it->first == 3) effHB->SetLineColor(kBlack);
@@ -216,13 +215,12 @@
   // HB prompt code plots
   TCanvas *cHB_ieta;
   for (int ieta = -16; ieta <= 16; ieta++) {
-    //    if (ieta == 0) continue;
-    if (ieta != 1) continue;
+    if (ieta == 0) continue;
     cHB_ieta = new TCanvas(); // reset canvas
     for (std::map<int,TH1F*>::iterator it = HB_tdc0_ieta[ieta].begin() ; it != HB_tdc0_ieta[ieta].end(); ++it) { // it->first is TS, it->second is TH1F HB_tdc0_ieta
       if (TEfficiency::CheckConsistency(*it->second,*HB_ieta[ieta][it->first])) {
-	TEfficiency *effHB = new TEfficiency(*it->second,*HB_ieta[ieta][it->first]); // replacing with HE_ieta[ieta+17][it->first] makes the plots work -- issue is in HB_ieta
-	effHB->SetTitle(Form("Prompt Code TDC=0 Rates in HB, 2022 900 GeV data (with ADC>64) (ieta=%d)",ieta));
+	TEfficiency *effHB = new TEfficiency(*it->second,*HB_ieta[ieta][it->first]); // replacing with HE_ieta[ieta+17][it->first] makes the plots work -- issue is in HB_ieta, not enough stats
+	effHB->SetTitle(Form("Prompt Code TDC=0 Rates in HB, 2022 900 GeV data (with ADC>50) (ieta=%d)",ieta));
 	effHB->SetLineWidth(2.);
         if (it->first == 2) effHB->SetLineColor(kGreen);
         if (it->first == 3) effHB->SetLineColor(kBlack);
@@ -231,10 +229,6 @@
         if (it->first > 2) effHB->Draw("SAME");
 	gPad->SetLogy();
 	gPad->Update();
-	//       effHB->GetPaintedGraph()->SetMaximum(0.000005);
-	//       effHB->GetPaintedGraph()->SetMinimum(0.);
-	//       gPad->Update();
-	//       cHB_ieta->SaveAs(Form("2022_plots/HB_TDCprompt_zzoom_2022_900gev_ieta%d.png",it->first));
 	effHB->GetPaintedGraph()->SetMaximum(1.);
 	effHB->GetPaintedGraph()->SetMinimum(0.);
 	gPad->Update();
@@ -248,7 +242,7 @@
   for (std::map<int,TH1F*>::iterator it = HB_tdc0_adc64_byTS.begin() ; it != HB_tdc0_adc64_byTS.end(); ++it) { // it->first is TS, it->second is TH1F HB_tdc0_adc64_byTS
     if (TEfficiency::CheckConsistency(*it->second,*HB_adc64_byTS[it->first])) {
       TEfficiency *effHB = new TEfficiency(*it->second,*HB_adc64_byTS[it->first]);
-      effHB->SetTitle("Prompt Code TDC=0 Rates in HB, 2022 900 GeV data (channels with ADC>64)");
+      effHB->SetTitle("Prompt Code TDC=0 Rates in HB, 2022 900 GeV data (channels with ADC>50)");
       effHB->SetLineWidth(2.);
       if (it->first == 2) effHB->SetLineColor(kGreen);
       if (it->first == 3) effHB->SetLineColor(kBlack);
@@ -273,7 +267,9 @@
      for (std::map<int,TH1F*>::iterator it = HE_tdc62_ieta[ieta].begin() ; it != HE_tdc62_ieta[ieta].end(); ++it) { // it->first is TS, it->second is TH1F HE_tdc62_ieta
        if (TEfficiency::CheckConsistency(*it->second,*HE_ieta[ieta][it->first])) {
 	 TEfficiency *effHE = new TEfficiency(*it->second,*HE_ieta[ieta][it->first]);
-	 effHE->SetTitle(Form("Error Code TDC=62 Rates in HE, 2022 900 GeV data (with ADC>64) (ieta=%d)",ieta));
+	 it->second->Write();
+	 HE_ieta[ieta][it->first]->Write();
+	 effHE->SetTitle(Form("Error Code TDC=62 Rates in HE, 2022 900 GeV data (with ADC>50) (ieta=%d)",ieta));
 	 effHE->SetLineWidth(2.);
 	 if (it->first == 2) effHE->SetLineColor(kGreen);
 	 if (it->first == 3) effHE->SetLineColor(kBlack);
@@ -286,9 +282,7 @@
 	 effHE->GetPaintedGraph()->SetMinimum(0.);
 	 gPad->Update();
 	 cHE_err_ieta->SaveAs(Form("2022_plots/HE_TDCerror_2022_900gev_ieta%d_TS%d.png",ieta,it->first));
-	 gPad->Update();
        }
-       //     cHE_err_ieta->SaveAs(Form("2022_plots/HE_TDCerror_zoom_2022_900gev_ieta%d.png",it->first));
      }
    }
 
@@ -297,7 +291,7 @@
    for (std::map<int,TH1F*>::iterator it = HE_tdc62_adc64_byTS.begin() ; it != HE_tdc62_adc64_byTS.end(); ++it) { // it->first is TS, it->second is TH1F HE_tdc62_adc64_byTS
      if (TEfficiency::CheckConsistency(*it->second,*HE_adc64_byTS[it->first])) {
        TEfficiency *effHE = new TEfficiency(*it->second,*HE_adc64_byTS[it->first]);
-       effHE->SetTitle("Error Code TDC=62 Rates in HE, 2022 900 GeV data (channels with ADC>64)");
+       effHE->SetTitle("Error Code TDC=62 Rates in HE, 2022 900 GeV data (channels with ADC>50)");
        effHE->SetLineWidth(2.);
        if (it->first == 2) effHE->SetLineColor(kGreen);
        if (it->first == 3) effHE->SetLineColor(kBlack);
@@ -322,7 +316,7 @@
      for (std::map<int,TH1F*>::iterator it = HE_tdc10_ieta[ieta].begin() ; it != HE_tdc10_ieta[ieta].end(); ++it) { // it->first is TS, it->second is TH1F HE_tdc10_ieta
        if (TEfficiency::CheckConsistency(*it->second,*HE_ieta[ieta][it->first])) {
 	 TEfficiency *effHE = new TEfficiency(*it->second,*HE_ieta[ieta][it->first]);
-	 effHE->SetTitle(Form("Prompt TDC<=10 Rates in HE, 2022 900 GeV data (with ADC>64) (ieta=%d)",ieta));
+	 effHE->SetTitle(Form("Prompt TDC<=10 Rates in HE, 2022 900 GeV data (with ADC>50) (ieta=%d)",ieta));
 	 effHE->SetLineWidth(2.);
 	 if (it->first == 2) effHE->SetLineColor(kGreen);
 	 if (it->first == 3) effHE->SetLineColor(kBlack);
@@ -336,7 +330,6 @@
 	 gPad->Update();
 	 cHE_ieta->SaveAs(Form("2022_plots/HE_TDCprompt_2022_900gev_ieta%d_TS%d.png",ieta,it->first));
 	 effHE->GetPaintedGraph()->SetMaximum(1);
-	 gPad->Update();
        }
      }
    }	 
@@ -346,7 +339,7 @@
    for (std::map<int,TH1F*>::iterator it = HE_tdc10_adc64_byTS.begin() ; it != HE_tdc10_adc64_byTS.end(); ++it) { // it->first is TS, it->second is TH1F HE_tdc10_adc64_byTS
      if (TEfficiency::CheckConsistency(*it->second,*HE_adc64_byTS[it->first])) {
        TEfficiency *effHE = new TEfficiency(*it->second,*HE_adc64_byTS[it->first]);
-       effHE->SetTitle("Prompt Code TDC<=10 Rates in HE, 2022 900 GeV data (channels with ADC>64)");
+       effHE->SetTitle("Prompt Code TDC<=10 Rates in HE, 2022 900 GeV data (channels with ADC>50)");
        effHE->SetLineWidth(2.);
        if (it->first == 2) effHE->SetLineColor(kGreen);
        if (it->first == 3) effHE->SetLineColor(kBlack);
@@ -367,7 +360,7 @@
    TCanvas *cHE_err_ieta20_depth1 = new TCanvas();
    if (TEfficiency::CheckConsistency(*HE_tdc10_ieta20_depth1,*HE_ieta20_depth1)) {
      TEfficiency *effHE = new TEfficiency(*HE_tdc62_ieta20_depth1,*HE_ieta20_depth1);
-     effHE->SetTitle("Error Code TDC=62 Rates in HE, 2022 900 GeV data (with ADC>64) (ieta=20, depth=1)");
+     effHE->SetTitle("Error Code TDC=62 Rates in HE, 2022 900 GeV data (with ADC>50) (ieta=20, depth=1)");
      effHE->SetLineWidth(2.);
      effHE->SetLineColor(kBlack);
      effHE->Draw();
@@ -386,7 +379,7 @@
    TCanvas *cHE_ieta20_depth1 = new TCanvas();
    if (TEfficiency::CheckConsistency(*HE_tdc10_ieta20_depth1,*HE_ieta20_depth1)) {
      TEfficiency *effHE = new TEfficiency(*HE_tdc10_ieta20_depth1,*HE_ieta20_depth1);
-     effHE->SetTitle("Prompt TDC<=10 Rates in HE, 2022 900 GeV data (with ADC>64) (ieta=20, depth=1)");
+     effHE->SetTitle("Prompt TDC<=10 Rates in HE, 2022 900 GeV data (with ADC>50) (ieta=20, depth=1)");
      effHE->SetLineWidth(2.);
      effHE->SetLineColor(kBlack);
      effHE->Draw();
