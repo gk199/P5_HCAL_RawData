@@ -73,14 +73,14 @@ void HBStudy::Loop()
   std::map<int, std::map<int,TH1F*>> HB_tdc3_ieta;
   std::map<int, std::map<int,TH1F*>> HB_ieta;
   
-  std::map<int, TH1F*> HB_energy_ieta;
-  std::map<int, TH1F*> HB_SOI_energy_ieta;
+  std::map<int, std::map<int,TH1F*>> HB_energy_ieta; // ieta, depth
+  std::map<int, std::map<int,TH1F*>> HB_SOI_energy_ieta;
   
   std::map<int, std::map<int,TH1F*>> HE_tdc10_ieta;
   std::map<int, std::map<int,TH1F*>> HE_tdc62_ieta;
   std::map<int, std::map<int,TH1F*>> HE_ieta;
   
-  std::map<int, std::map<int,TH1F*>> HE_energy_ieta;
+  //  std::map<int, std::map<int,TH1F*>> HE_energy_ieta;
 
   
   // ieta 20, depth 1 for studies
@@ -108,15 +108,15 @@ void HBStudy::Loop()
       if (abs(ch_ieta) <= 16) {
 	if (abs(ch_ieta) == 16 && QIE11DigiDepth->at(ch) == 4) continue;
 	
-	if (HB_energy_ieta.find(ch_ieta) == HB_energy_ieta.end()) HB_energy_ieta[ch_ieta] = new TH1F(Form("HB_energy_ieta%d",ch_ieta),Form("SOI-1+SOI energy in HB, 2022 900 GeV (with ADC>64) (ieta=%d);QIE phase setting;Energy Ratio",ch_ieta),120,1,121);
-	if (HB_SOI_energy_ieta.find(ch_ieta) == HB_SOI_energy_ieta.end()) HB_SOI_energy_ieta[ch_ieta] = new TH1F(Form("HB_SOI_energy_ieta%d",ch_ieta),Form("SOI energy in HB, 2022 900 GeV (with ADC>64) (ieta=%d);QIE phase setting;Energy Ratio",ch_ieta),120,1,121);
+	if (HB_energy_ieta[ch_ieta].find(ch_depth) == HB_energy_ieta[ch_ieta].end()) HB_energy_ieta[ch_ieta][ch_depth] = new TH1F(Form("HB_energy_ieta%d_depth%d",ch_ieta,ch_depth),Form("SOI-1+SOI energy in HB, 2022 900 GeV (with ADC>64) (ieta=%d,depth=%d);QIE phase setting;Energy Ratio",ch_ieta,ch_depth),120,1,121);
+	if (HB_SOI_energy_ieta[ch_ieta].find(ch_depth) == HB_SOI_energy_ieta[ch_ieta].end()) HB_SOI_energy_ieta[ch_ieta][ch_depth] = new TH1F(Form("HB_SOI_energy_ieta%d_depth%d",ch_ieta,ch_depth),Form("SOI energy in HB, 2022 900 GeV (with ADC>64) (ieta=%d,depth=%d);QIE phase setting;Energy Ratio",ch_ieta,ch_depth),120,1,121);
 	//	 if (QIE11DigiADC->at(ch).at(2) > (75 + abs(ch_ieta)) || QIE11DigiADC->at(ch).at(3) > (75 + abs(ch_ieta))) { // if energy is high either in SOI-1, SOI
 	if (QIE11DigiADC->at(ch).at(2) > (ADCenergy + abs(ch_ieta)) || QIE11DigiADC->at(ch).at(3) > (ADCenergy + abs(ch_ieta))) {
 	  //	 if (QIE11DigiADC->at(ch).at(2) > 10 || QIE11DigiADC->at(ch).at(3) > 10) { // for testing
 	  int SOIm1_energy = QIE11DigiADC->at(ch).at(2); // SOI-1 energy
 	  int SOI_energy = QIE11DigiADC->at(ch).at(3); // SOI energy
-	  HB_energy_ieta[ch_ieta]->Fill(laserType, (SOIm1_energy + SOI_energy));
-	  HB_SOI_energy_ieta[ch_ieta]->Fill(laserType, SOI_energy);
+	  HB_energy_ieta[ch_ieta][ch_depth]->Fill(laserType, (SOIm1_energy + SOI_energy));
+	  HB_SOI_energy_ieta[ch_ieta][ch_depth]->Fill(laserType, SOI_energy);
 	}
 
 	for (int TS=2; TS<=4; TS++) { // TS loop
@@ -242,44 +242,64 @@ void HBStudy::Loop()
     }
   }
   
+  // writing QIE delay in form for latex tables
   std::ofstream HB_Energy_QIEsettings;
   HB_Energy_QIEsettings.open(Form("HB_Energy_QIEsettings_ADC%d.txt",ADCenergy), std::ios_base::trunc);
   HB_Energy_QIEsettings << "\\begin{table}[!hbtp] \n \\centering \n \\begin{tabular}{lcccc \n \\hline \n \\textbf{iEta} & \\textbf{Depth 1} & \\textbf{Depth 2} & \\textbf{Depth 3} & \\textbf{Depth 4} \\\\ \n \\hline \n \\hline \n";
   
   // SOI energy ratio plots
-  TCanvas *cHB_energy = new TCanvas(); // set canvas
-  for (std::map<int,TH1F*>::iterator it = HB_SOI_energy_ieta.begin() ; it != HB_SOI_energy_ieta.end(); ++it) { // it->first is iEta, it->second is the TH1F HB_energy_ieta
-    if (TEfficiency::CheckConsistency(*it->second,*HB_energy_ieta[it->first])) {
-      TEfficiency *effHB = new TEfficiency(*it->second,*HB_energy_ieta[it->first]); 
+  TCanvas *cHB_energy;
+  for (int ieta = -16; ieta <= 16; ieta++) {
+    if (ieta == 0) continue;
+
+    int maxBin[5] = {-1};
+    double maxContent[5] = {-1}; // find max bin and contents by depth
+
+    cHB_energy = new TCanvas(); // set canvas
+    for (std::map<int,TH1F*>::iterator it = HB_SOI_energy_ieta[ieta].begin() ; it != HB_SOI_energy_ieta[ieta].end(); ++it) { // it->first is depth, it->second is the TH1F HB_energy_ieta
+      if (TEfficiency::CheckConsistency(*it->second,*HB_energy_ieta[ieta][it->first])) {
+	TEfficiency *effHB = new TEfficiency(*it->second,*HB_energy_ieta[ieta][it->first]); 
       
-      TH1D *background_HB_energy = new TH1D(Form("background_HB_energy_ieta%d",it->first), Form("SOI/(SOI-1 + SOI) energy in HB, 2022 900 GeV (with ADC>64) (ieta=%d);QIE pphase setting;Energy ratio",it->first), 1, 0, 121);
-      background_HB_energy->SetMaximum(1);
-      background_HB_energy->SetStats(0);
-      background_HB_energy->Draw();
+	TH1D *background_HB_energy = new TH1D(Form("background_HB_energy_ieta%d_depth%d",ieta,it->first), Form("SOI/(SOI-1 + SOI) energy in HB, 2022 900 GeV (with ADC>64) (ieta=%d,depth=%d);QIE phase setting;Energy ratio",ieta,it->first), 1, 0, 121);
+	background_HB_energy->SetMaximum(1);
+	background_HB_energy->SetStats(0);
+	background_HB_energy->Draw();
+	
+	effHB->Draw("SAME");
       
-      //      effHB->SetTitle(Form("SOI/(SOI-1 + SOI) energy in HB, 2022 900 GeV (with ADC>64) (ieta=%d)",it->first));
-      effHB->Draw("SAME");
-      
-      int maxBin = -1;
-      double maxContent = -1;
-      for (int i = 1; i < 121; i++) {
-	if (effHB->GetEfficiency(i) > 0) std::cout << effHB->GetEfficiency(i) <<" for bin i = " << i <<  std::endl;
-	if (maxContent < effHB->GetEfficiency(i)) {
-	  maxBin = i;
-	  maxContent = effHB->GetEfficiency(i);
-	  std::cout << effHB->GetEfficiency(i) <<" for bin i = " << i <<  std::endl;
+	for (int i = 1; i < 121; i++) {
+	  //	  if (effHB->GetEfficiency(i) > 0) std::cout << effHB->GetEfficiency(i) <<" for bin i = " << i << " at depth, ieta = " << it->first << ", " << ieta <<  std::endl;
+	  if (maxContent[it->first] < effHB->GetEfficiency(i)) {
+	    maxBin[it->first] = i;
+	    maxContent[it->first] = effHB->GetEfficiency(i);
+	    //	    std::cout << effHB->GetEfficiency(i) <<" for bin i = " << i <<  std::endl;
+	  }
 	}
+	std::cout << maxBin[it->first] << std::endl;
+	gPad->Update();
+	//    it->second->Write();
+	//	cHB_energy->SaveAs(Form("2022_plots/HB_energy_ieta%d_depth%d.png",ieta,it->first));
       }
-      std::cout << maxBin << std::endl;
-      HB_Energy_QIEsettings << it->first << " & " << maxBin << " & & & \\\\ \n";
-      
-      gPad->Update();
-      //    it->second->Write();
-      cHB_energy->SaveAs(Form("2022_plots/HB_energy_ieta%d.png",it->first));
     }
+    HB_Energy_QIEsettings << ieta << " & " << maxBin[1] << " & " << maxBin[2] << " & " << maxBin[3] << " & " << maxBin[4] << "  & \\\\ \n";
   }
   HB_Energy_QIEsettings << "\\hline \n \\end{tabular} \n \\caption{QIE settings where energy ratio is maximized, 2022 900 GeV HCAL QIE scan.} \n \\label{HB_energy_QIEsettings} \n \\end{table} \n";
   HB_Energy_QIEsettings.close();
+
+
+  // writing QIE delay table in latex form
+  std::ofstream HB_PromptTDC_QIEsettings_TS2;
+  HB_PromptTDC_QIEsettings_TS2.open(Form("HB_PromptTDC_QIEsettings_TS2_ADC%d.txt",ADCenergy), std::ios_base::trunc);
+  HB_PromptTDC_QIEsettings_TS2 << "\\begin{table}[!hbtp] \n \\centering \n \\begin{tabular}{lcccc \n \\hline \n \\textbf{iEta} & \\textbf{Depth 1} & \\textbf{Depth 2} & \\textbf{Depth 3} & \\textbf{Depth 4} \\\\ \n \\hline \n \\hline \n";
+
+  std::ofstream HB_PromptTDC_QIEsettings_TS3;
+  HB_PromptTDC_QIEsettings_TS3.open(Form("HB_PromptTDC_QIEsettings_TS3_ADC%d.txt",ADCenergy), std::ios_base::trunc);
+  HB_PromptTDC_QIEsettings_TS3 << "\\begin{table}[!hbtp] \n \\centering \n \\begin{tabular}{lcccc \n \\hline \n \\textbf{iEta} & \\textbf{Depth 1} & \\textbf{Depth 2} & \\textbf{Depth 3} & \\textbf{Depth 4} \\\\ \n \\hline \n \\hline \n";
+
+  std::ofstream HB_PromptTDC_QIEsettings_TS4;
+  HB_PromptTDC_QIEsettings_TS4.open(Form("HB_PromptTDC_QIEsettings_TS4_ADC%d.txt",ADCenergy), std::ios_base::trunc);
+  HB_PromptTDC_QIEsettings_TS4 << "\\begin{table}[!hbtp] \n \\centering \n \\begin{tabular}{lcccc \n \\hline \n \\textbf{iEta} & \\textbf{Depth 1} & \\textbf{Depth 2} & \\textbf{Depth 3} & \\textbf{Depth 4} \\\\ \n \\hline \n \\hline \n";
+
 
   // HB prompt code plots
   TCanvas *cHB_ieta;
@@ -307,6 +327,18 @@ void HBStudy::Loop()
 	effHB->GetPaintedGraph()->SetMinimum(0.);
 	gPad->Update();
 	cHB_ieta->SaveAs(Form("2022_plots/HB_TDCprompt_2022_900gev_ieta%d_TS%d.png",ieta,it->first));
+
+	int maxBin[5] = {-1};
+	double maxContent[5] = {-1};
+	for (int i = 1; i < 121; i++) {
+	  if (maxContent[it->first] < effHB->GetEfficiency(i)) {
+	    maxBin[it->first] = i;
+	    maxContent[it->first] = effHB->GetEfficiency(i);
+	  }
+	}
+	if (it->first == 2) HB_PromptTDC_QIEsettings_TS2 << ieta << " & " << maxBin[2] << " & & & \\\\ \n";
+	if (it->first == 3) HB_PromptTDC_QIEsettings_TS3 << ieta << " & " << maxBin[3] << " & & & \\\\ \n";
+	if (it->first == 4) HB_PromptTDC_QIEsettings_TS4 << ieta << " & " << maxBin[4] << " & & & \\\\ \n";
       }
     }
   }
@@ -360,7 +392,7 @@ void HBStudy::Loop()
 	 effHE->GetPaintedGraph()->SetMaximum(1.);
 	 effHE->GetPaintedGraph()->SetMinimum(0.);
 	 gPad->Update();
-	 cHE_err_ieta->SaveAs(Form("2022_plots/HE_TDCerror_2022_900gev_ieta%d_TS%d.png",ieta,it->first));
+	 //	 cHE_err_ieta->SaveAs(Form("2022_plots/HE_TDCerror_2022_900gev_ieta%d_TS%d.png",ieta,it->first));
        }
      }
    }
@@ -383,7 +415,7 @@ void HBStudy::Loop()
        effHE->GetPaintedGraph()->SetMaximum(1.);
        effHE->GetPaintedGraph()->SetMinimum(0.);
        gPad->Update();
-       cHE_err_adc->SaveAs(Form("2022_plots/HE_TDCerror_2022_900gev_adc64_TS%d.png",it->first));
+       //       cHE_err_adc->SaveAs(Form("2022_plots/HE_TDCerror_2022_900gev_adc64_TS%d.png",it->first));
      }
    }
    
@@ -412,7 +444,7 @@ void HBStudy::Loop()
 	 effHE->GetPaintedGraph()->SetMaximum(1.);
 	 effHE->GetPaintedGraph()->SetMinimum(0.);
 	 gPad->Update();
-	 cHE_ieta->SaveAs(Form("2022_plots/HE_TDCprompt_2022_900gev_ieta%d_TS%d.png",ieta,it->first));
+	 //	 cHE_ieta->SaveAs(Form("2022_plots/HE_TDCprompt_2022_900gev_ieta%d_TS%d.png",ieta,it->first));
 	 effHE->GetPaintedGraph()->SetMaximum(1);
        }
      }
@@ -436,7 +468,7 @@ void HBStudy::Loop()
        effHE->GetPaintedGraph()->SetMaximum(1.);
        effHE->GetPaintedGraph()->SetMinimum(0.);
        gPad->Update();
-       cHE_adc->SaveAs(Form("2022_plots/HE_TDCprompt_2022_900gev_adc64_TS%d.png",it->first));
+       //       cHE_adc->SaveAs(Form("2022_plots/HE_TDCprompt_2022_900gev_adc64_TS%d.png",it->first));
      }
    }
 
@@ -453,12 +485,12 @@ void HBStudy::Loop()
      effHE->GetPaintedGraph()->SetMaximum(0.05);
      effHE->GetPaintedGraph()->SetMinimum(0.);
      gPad->Update();
-     cHE_err_ieta20_depth1->SaveAs("2022_plots/HE_TDCerror_zoom_2022_900gev_ieta20_depth1.png");
+     //     cHE_err_ieta20_depth1->SaveAs("2022_plots/HE_TDCerror_zoom_2022_900gev_ieta20_depth1.png");
      gPad->Update();
      effHE->GetPaintedGraph()->SetMaximum(1);
      gPad->Update();
    }
-   cHE_err_ieta20_depth1->SaveAs("2022_plots/HE_TDCerror_2022_900gev_ieta20_depth1.png");
+   //   cHE_err_ieta20_depth1->SaveAs("2022_plots/HE_TDCerror_2022_900gev_ieta20_depth1.png");
 
    TCanvas *cHE_ieta20_depth1 = new TCanvas();
    if (TEfficiency::CheckConsistency(*HE_tdc10_ieta20_depth1,*HE_ieta20_depth1)) {
@@ -472,10 +504,10 @@ void HBStudy::Loop()
      effHE->GetPaintedGraph()->SetMaximum(0.05);
      effHE->GetPaintedGraph()->SetMinimum(0.);
      gPad->Update();
-     cHE_ieta20_depth1->SaveAs("2022_plots/HE_TDCprompt_zoom_2022_900gev_ieta20_depth1.png");
+     //     cHE_ieta20_depth1->SaveAs("2022_plots/HE_TDCprompt_zoom_2022_900gev_ieta20_depth1.png");
      gPad->Update();
      effHE->GetPaintedGraph()->SetMaximum(1);
      gPad->Update();
    }
-   cHE_ieta20_depth1->SaveAs("2022_plots/HE_TDCprompt_2022_900gev_ieta20_depth1.png");
+   //   cHE_ieta20_depth1->SaveAs("2022_plots/HE_TDCprompt_2022_900gev_ieta20_depth1.png");
 }
