@@ -56,6 +56,13 @@ void HBStudy_nominalQIE::Loop()
   std::map<int, std::map<int,TH1F*>> HB_peak_byTS; // ieta, depth
   std::map<int, std::map<int,TH1F*>> HB_prompt_byTS;
 
+  std::map<int, TH1F*> HB_SOIratio; // depth
+  std::map<int, TH1F*> HB_SOIratio_normalization; // depth
+  TH2F* HB_SOIratio_SOIminus = new TH2F("HB_SOIratio_SOIminus","SOI / SOI+1 ratio vs SOI-1 Energy;SOI / SOI+1; SOI-1 Energy (ADC)",20,0,4,100,0,100);
+  std::map<int, TH1F*> HB_SOIminus;
+  std::map<int, TH1F*> HB_SOIminusADC;
+  std::map<int, TH1F*> HB_SOIminus_normalization; // depth
+
   const int ADCenergy = 50; // about 3 GeV 
   const int FCenergy = 4800; // about 3 GeV 
   
@@ -73,14 +80,20 @@ void HBStudy_nominalQIE::Loop()
       int ch_depth = QIE11DigiDepth->at(ch);
       
       if (laserType == 999) continue; // this is when settings on the front end are changed
-      
+      if (laserType != 0) std::cout << laserType << " = laserType" << std::endl;
+
       if (abs(ch_ieta) <= 16) {
 	if (abs(ch_ieta) == 16 && QIE11DigiDepth->at(ch) == 4) continue;
 	
-	if (HB_energy_byTS[ch_ieta].find(ch_depth) == HB_energy_byTS[ch_ieta].end()) HB_energy_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_energy_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("Energy in HB by TS, 2022 900 GeV;QIE11 Digi TS;Energy in each TS (ADC)"),8,0,8);
-	if (HB_EarlyEnergy_byTS[ch_ieta].find(ch_depth) == HB_EarlyEnergy_byTS[ch_ieta].end()) HB_EarlyEnergy_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_EarlyEnergy_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("Early Energy in HB by TS, 2022 900 GeV;QIE11 Digi TS;Energy in each TS (ADC)"),8,0,8);
+	if (HB_energy_byTS[ch_ieta].find(ch_depth) == HB_energy_byTS[ch_ieta].end()) HB_energy_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_energy_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("Energy in HB by TS, 2022 900 GeV;QIE11 Digi TS;Energy fraction in each TS (ADC)"),8,0,8);
+	if (HB_EarlyEnergy_byTS[ch_ieta].find(ch_depth) == HB_EarlyEnergy_byTS[ch_ieta].end()) HB_EarlyEnergy_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_EarlyEnergy_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("Early Energy in HB by TS, 2022 900 GeV;QIE11 Digi TS;Energy fraction in each TS (ADC)"),8,0,8);
 	if (HB_peak_byTS[ch_ieta].find(ch_depth) == HB_peak_byTS[ch_ieta].end()) HB_peak_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_peak_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("Peak Energy TS in HB;QIE11 Digi TS;Fraction of Events"),8,0,8);
 	if (HB_prompt_byTS[ch_ieta].find(ch_depth) == HB_prompt_byTS[ch_ieta].end()) HB_prompt_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_prompt_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("TDC=0 TS in HB;QIE11 Digi TS;Fraction of Events"),8,0,8);
+	if (HB_SOIratio.find(ch_depth) == HB_SOIratio.end()) HB_SOIratio[ch_depth] = new TH1F(Form("HB_SOIratio_depth%d",ch_depth),Form("SOI/SOI+1 ratio in HB by i#eta for depth=%d;HB i#eta;#frac{SOI}{SOI+1} Ratio",ch_depth),33,-16,17);
+	if (HB_SOIratio_normalization.find(ch_depth) == HB_SOIratio_normalization.end()) HB_SOIratio_normalization[ch_depth] = new TH1F(Form("HB_SOIratio_normalization_depth%d",ch_depth),Form("SOI/SOI+1 ratio_normalization in HB by i#eta for depth=%d;HB i#eta;#frac{SOI}{SOI+1} Ratio Normalization",ch_depth),33,-16,17);
+	if (HB_SOIminus.find(ch_depth) == HB_SOIminus.end()) HB_SOIminus[ch_depth] = new TH1F(Form("HB_SOIminus_depth%d",ch_depth),Form("SOI-1 energy fraction in HB by i#eta for depth=%d;HB i#eta;Fraction of energy in SOI-1",ch_depth),33,-16,17);
+	if (HB_SOIminusADC.find(ch_depth) == HB_SOIminusADC.end()) HB_SOIminusADC[ch_depth] = new TH1F(Form("HB_SOIminusADC_depth%d",ch_depth),Form("SOI-1 ADC in HB by i#eta for depth=%d;HB i#eta;ADC in SOI-1",ch_depth),33,-16,17);
+ if (HB_SOIminus_normalization.find(ch_depth) == HB_SOIminus_normalization.end()) HB_SOIminus_normalization[ch_depth] = new TH1F(Form("HB_SOIminus_normalization_depth%d",ch_depth),Form("SOI-1 normalization in HB by i#eta for depth=%d;HB i#eta;SOI-1  Normalization",ch_depth),33,-16,17);
 
 	float totalEnergy = 0;
 	int oneTShigh = 0;
@@ -88,8 +101,14 @@ void HBStudy_nominalQIE::Loop()
 	float highestEnergy = 0;
 	int promptTS = -1;
 
+	float SOIminus_energy = QIE11DigiADC->at(ch).at(2);
+	float SOI_energy = QIE11DigiADC->at(ch).at(3);
+        float SOIplus_energy = QIE11DigiADC->at(ch).at(4);
+
 	for (int TS = 0; TS < 8; TS++) {
           totalEnergy += QIE11DigiADC->at(ch).at(TS);
+	  if (QIE11DigiTDC->at(ch).at(TS) == 0) promptTS = TS; // find the TS where TDC is prompt, no requirement on energy of any channel to catch offsets
+
 	  //	  if (QIE11DigiFC->at(ch).at(TS) > FCenergy) {
 	  //	  if (QIE11DigiADC->at(ch).at(TS) > (ADCenergy + abs(ch_ieta))) {
 	  if (QIE11DigiADC->at(ch).at(TS) > ADCenergy) { // flat ADC cut
@@ -98,12 +117,22 @@ void HBStudy_nominalQIE::Loop()
 	      highestTS = TS;
 	      highestEnergy = QIE11DigiADC->at(ch).at(TS);
 	    }
-	    if (QIE11DigiTDC->at(ch).at(TS) == 0) promptTS = TS; // find the TS where TDC is prompt
 	  } // end of energy requirement
 	} // end of TS loop
 	if (highestEnergy > 0) HB_peak_byTS[ch_ieta][ch_depth]->Fill(highestTS,1);
 	if (promptTS >= 0) HB_prompt_byTS[ch_ieta][ch_depth]->Fill(promptTS,1);
 	if (oneTShigh == 1) { // if one TS has enough energy, fill in pulse shape distribution plot
+
+	  double SOI_ratio = SOI_energy / SOIplus_energy;
+	  if (ch_ieta == 1) std::cout << SOI_ratio << " = SOI_ratio, with SOI energy and SOI+1 energy = " << SOI_energy << ", " << SOIplus_energy << " for ieta = " << ch_ieta << std::endl;
+          if (ch_ieta == 15) std::cout << SOI_ratio << " = SOI_ratio, with SOI energy and SOI+1 energy = " << SOI_energy << ", " << SOIplus_energy << " for ieta = " << ch_ieta << std::endl;
+	  HB_SOIratio[ch_depth]->Fill(ch_ieta, SOI_ratio);
+	  HB_SOIratio_normalization[ch_depth]->Fill(ch_ieta, 1);
+	  HB_SOIratio_SOIminus->Fill(SOI_ratio,QIE11DigiADC->at(ch).at(2));
+	  HB_SOIminus[ch_depth]->Fill(ch_ieta, SOIminus_energy / totalEnergy);
+          HB_SOIminusADC[ch_depth]->Fill(ch_ieta, SOIminus_energy);
+          HB_SOIminus_normalization[ch_depth]->Fill(ch_ieta, 1);
+
 	  for (int TS = 0; TS < 8; TS++) {
 	    double fractional_energy = QIE11DigiADC->at(ch).at(TS)  / totalEnergy;
 	    HB_energy_byTS[ch_ieta][ch_depth]->Fill(TS, fractional_energy);
@@ -121,10 +150,73 @@ void HBStudy_nominalQIE::Loop()
   float commentaryXpos = 0.6;
   float depthXpos = 0.2;
 
-  // colors used = 30 (green), 38 (blue), 40 (purple), 49 (muave)
+  // colors used = 30 (green), 38 (blue), 40 (purple), 42 (orange / tan), 45/46 (red), 49 (muave)
   // average pulse shape in HB
   TCanvas *cHB_pulse_shape;
-  TCanvas *cHB_pulse_shape_ieta;
+
+  // SOI ratio vs ieta
+  for (std::map<int,TH1F*>::iterator it = HB_SOIratio.begin() ; it != HB_SOIratio.end(); it++) { // it->first is depth, it->second is HB_SOIratio
+    cHB_pulse_shape = new TCanvas(); // reset canvas
+    HB_SOIratio[it->first]->Divide(HB_SOIratio_normalization[it->first]); // divide HB_SOIratio by HB_SOIratio_normalization
+    HB_SOIratio[it->first]->SetFillColor(42);
+    HB_SOIratio[it->first]->SetMaximum(2.6);
+    HB_SOIratio[it->first]->SetMinimum(0.);
+    HB_SOIratio[it->first]->Draw("bar1");
+    HB_SOIratio[it->first]->Write();
+
+    latex->DrawLatex(0.12, 0.85, cmsLabel);
+    latex->DrawLatex(commentaryXpos-0.45, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+    latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+    
+    gPad->Update();
+    cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_SOIratio_2022_900gev_depth%d.png",it->first));
+  }
+  // HB_SOIminus fraction
+  for (std::map<int,TH1F*>::iterator it = HB_SOIminus.begin() ; it != HB_SOIminus.end(); it++) { // it->first is depth, it->second is HB_SOIminus
+    cHB_pulse_shape = new TCanvas(); // reset canvas
+    HB_SOIminus[it->first]->Divide(HB_SOIminus_normalization[it->first]); // divide HB_SOIminus by HB_SOIminus_normalization
+    HB_SOIminus[it->first]->SetFillColor(46);
+    HB_SOIminus[it->first]->SetMaximum(0.3);
+    HB_SOIminus[it->first]->SetMinimum(0.);
+    HB_SOIminus[it->first]->Draw("bar1");
+    HB_SOIminus[it->first]->Write();
+
+    latex->DrawLatex(0.12, 0.85, cmsLabel);
+    latex->DrawLatex(commentaryXpos-0.45, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+    latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+
+    gPad->Update();
+    cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_SOIminus_2022_900gev_depth%d.png",it->first));
+  }
+  // HB_SOI minus energy
+  for (std::map<int,TH1F*>::iterator it = HB_SOIminusADC.begin() ; it != HB_SOIminusADC.end(); it++) { // it->first is depth, it->second is HB_SOIminusADC
+    cHB_pulse_shape = new TCanvas(); // reset canvas
+    HB_SOIminusADC[it->first]->Divide(HB_SOIminus_normalization[it->first]); // divide HB_SOIminusADC by HB_SOIminus_normalization
+    HB_SOIminusADC[it->first]->SetFillColor(45);
+    HB_SOIminusADC[it->first]->SetMaximum(25.);
+    HB_SOIminusADC[it->first]->SetMinimum(0.);
+    HB_SOIminusADC[it->first]->Draw("bar1");
+    HB_SOIminusADC[it->first]->Write();
+
+    latex->DrawLatex(0.12, 0.85, cmsLabel);
+    latex->DrawLatex(commentaryXpos-0.45, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+    latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+
+    gPad->Update();
+    cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_SOIminusADC_2022_900gev_depth%d.png",it->first));
+  }
+
+
+  // SOI minus vs SOI-1 energy
+  cHB_pulse_shape = new TCanvas(); // reset canvas
+  gPad->SetLogz();
+  HB_SOIratio_SOIminus->Draw("COLZ");
+  HB_SOIratio_SOIminus->Write();
+  
+  latex->DrawLatex(0.12, 0.85, cmsLabel);
+  
+  gPad->Update();
+  cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_SOIratio2D_2022_900gev.png"));
 
   //  HB_energy_byTS
   for (int ieta = -16; ieta <= 16; ieta++) {
@@ -225,8 +317,7 @@ void HBStudy_nominalQIE::Loop()
 
       latex->DrawLatex(0.12, 0.85, cmsLabel); 
 
-      latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
-      latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+      latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
 
       gPad->Update();
       cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_prompt_2022_900gev_ieta%d_depth%d.png",ieta,it->first));
