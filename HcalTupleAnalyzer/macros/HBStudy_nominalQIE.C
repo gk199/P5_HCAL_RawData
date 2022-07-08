@@ -100,6 +100,7 @@ void HBStudy_nominalQIE::Loop()
 	int highestTS = -1;
 	float highestEnergy = 0;
 	int promptTS = -1;
+	int TDCvalidTS = -1;
 
 	float SOIminus_energy = QIE11DigiADC->at(ch).at(2);
 	float SOI_energy = QIE11DigiADC->at(ch).at(3);
@@ -108,7 +109,11 @@ void HBStudy_nominalQIE::Loop()
 	for (int TS = 0; TS < 8; TS++) {
           totalEnergy += QIE11DigiADC->at(ch).at(TS);
 	  if (QIE11DigiTDC->at(ch).at(TS) == 0) promptTS = TS; // find the TS where TDC is prompt, no requirement on energy of any channel to catch offsets
+	  if ((QIE11DigiTDC->at(ch).at(TS) == 0 || QIE11DigiTDC->at(ch).at(TS) == 1 || QIE11DigiTDC->at(ch).at(TS) == 2) && TDCvalidTS == -1) TDCvalidTS = TS; // find the first TS where TDC is valid, ensuring that all TDC before this TS were invalid (3). Might need to require that at least one channel is above 50 to get a 1-1 correspondence with the ADC peak plot...
 
+	  if (QIE11DigiTDC->at(ch).at(TS) != 3) {
+	    std::cout << "TDC values = " << QIE11DigiTDC->at(ch).at(0) << ", " << QIE11DigiTDC->at(ch).at(1)  << ", " << QIE11DigiTDC->at(ch).at(2) << ", " << QIE11DigiTDC->at(ch).at(3) << ", " << QIE11DigiTDC->at(ch).at(4) << ", " << QIE11DigiTDC->at(ch).at(5) << ", " << QIE11DigiTDC->at(ch).at(6) << ", " << QIE11DigiTDC->at(ch).at(7) << " and energy values for all TS are = " << QIE11DigiADC->at(ch).at(0) << ", " << QIE11DigiADC->at(ch).at(1) << ", " << QIE11DigiADC->at(ch).at(2) << ", " << QIE11DigiADC->at(ch).at(3) << ", " << QIE11DigiADC->at(ch).at(4) << ", " << QIE11DigiADC->at(ch).at(5) << ", " << QIE11DigiADC->at(ch).at(6) << ", " << QIE11DigiADC->at(ch).at(7) << " and ieta, depth = " << ch_ieta << ", " << ch_depth << std::endl;
+	  }
 	  //	  if (QIE11DigiFC->at(ch).at(TS) > FCenergy) {
 	  //	  if (QIE11DigiADC->at(ch).at(TS) > (ADCenergy + abs(ch_ieta))) {
 	  if (QIE11DigiADC->at(ch).at(TS) > ADCenergy) { // flat ADC cut
@@ -119,13 +124,16 @@ void HBStudy_nominalQIE::Loop()
 	    }
 	  } // end of energy requirement
 	} // end of TS loop
+	if (TDCvalidTS != -1) std::cout << TDCvalidTS << " = TDCvalidTS" << std::endl;
+	if ( oneTShigh == 1 ) std::cout << highestTS << " = TS with highest ADC energy" << std::endl;
+
 	if (highestEnergy > 0) HB_peak_byTS[ch_ieta][ch_depth]->Fill(highestTS,1);
 	if (promptTS >= 0) HB_prompt_byTS[ch_ieta][ch_depth]->Fill(promptTS,1);
 	if (oneTShigh == 1) { // if one TS has enough energy, fill in pulse shape distribution plot
 
 	  double SOI_ratio = SOI_energy / SOIplus_energy;
-	  if (ch_ieta == 1) std::cout << SOI_ratio << " = SOI_ratio, with SOI energy and SOI+1 energy = " << SOI_energy << ", " << SOIplus_energy << " for ieta = " << ch_ieta << std::endl;
-          if (ch_ieta == 15) std::cout << SOI_ratio << " = SOI_ratio, with SOI energy and SOI+1 energy = " << SOI_energy << ", " << SOIplus_energy << " for ieta = " << ch_ieta << std::endl;
+	  //	  if (ch_ieta == 1) std::cout << SOI_ratio << " = SOI_ratio, with SOI energy and SOI+1 energy = " << SOI_energy << ", " << SOIplus_energy << " for ieta = " << ch_ieta << std::endl;
+	  //          if (ch_ieta == 15) std::cout << SOI_ratio << " = SOI_ratio, with SOI energy and SOI+1 energy = " << SOI_energy << ", " << SOIplus_energy << " for ieta = " << ch_ieta << std::endl;
 	  HB_SOIratio[ch_depth]->Fill(ch_ieta, SOI_ratio);
 	  HB_SOIratio_normalization[ch_depth]->Fill(ch_ieta, 1);
 	  HB_SOIratio_SOIminus->Fill(SOI_ratio,QIE11DigiADC->at(ch).at(2));
