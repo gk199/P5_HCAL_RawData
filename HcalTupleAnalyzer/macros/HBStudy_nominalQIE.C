@@ -54,16 +54,29 @@ void HBStudy_nominalQIE::Loop()
   std::map<int, std::map<int,TH1F*>> HB_energy_byTS; // ieta, depth
   std::map<int, std::map<int,TH1F*>> HB_EarlyEnergy_byTS;
   std::map<int, std::map<int,TH1F*>> HB_peak_byTS; // ieta, depth
-  std::map<int, std::map<int,TH1F*>> HB_prompt_byTS;
+  std::map<int, std::map<int,TH1F*>> HB_validTDC_byTS;
+  std::map<int, std::map<int,TH1F*>> HB_firstADC_byTS;
 
   std::map<int, TH1F*> HB_SOIratio; // depth
   std::map<int, TH1F*> HB_SOIratio_normalization; // depth
-  TH2F* HB_SOIratio_SOIminus = new TH2F("HB_SOIratio_SOIminus","SOI / SOI+1 ratio vs SOI-1 Energy;SOI / SOI+1; SOI-1 Energy (ADC)",20,0,4,100,0,100);
-  std::map<int, TH1F*> HB_SOIminus;
-  std::map<int, TH1F*> HB_SOIminusADC;
+  TH2F* HB_SOIratio_SOIminus = new TH2F("HB_SOIratio_SOIminus","SOI / SOI+1 ratio vs. SOI-1 Energy;SOI / SOI+1; SOI-1 Energy (ADC)",20,0,4,100,0,100);
+
+  TH2F* HB_ADCm_TDC = new TH2F("HB_ADCm_TDC","ADC (TS-1) vs. Valid TDC (TS);ADC;Valid TDC",100,0,100,4,0,4);
+  TH2F* HB_ADC_TDC = new TH2F("HB_ADC_TDC","ADC (TS) vs. Valid TDC (TS);ADC;Valid TDC",100,0,100,4,0,4);
+  TH2F* HB_ADCp_TDC = new TH2F("HB_ADCp_TDC","ADC (TS+1) vs. Valid TDC (TS);ADC;Valid TDC",100,0,100,4,0,4);
+
+  TH2F* HB_ADC_TDC0relativeTS = new TH2F("HB_ADC_TDC0relativeTS","ADC in each TS relative to TDC=0 TS;Relative TS to TDC=0;ADC Value",15,-7,8,75,0,150);
+  TH2F* HB_ADC_TDC1relativeTS =new TH2F("HB_ADC_TDC1relativeTS","ADC in each TS relative to TDC=1 TS;Relative TS to TDC=1;ADC Value",15,-7,8,75,0,150);
+  TH2F* HB_ADC_TDC2relativeTS =new TH2F("HB_ADC_TDC2relativeTS","ADC in each TS relative to TDC=2 TS;Relative TS to TDC=2;ADC Value",15,-7,8,75,0,150);
+
+  TH2F* HB_ADC_TDC_TSs = new TH2F("HB_ADC_TDC_TSs","ADC TS  vs. Valid TDC TS;ADC TS;Valid TDC TS",8,0,8,8,0,8);
+
+  std::map<int, TH1F*> HB_SOIminus; // fractional energy
+  std::map<int, TH1F*> HB_SOIminusADC; // ADC energy value
+  std::map<int, TH1F*> HB_SOIminus36; // % of SOI-1 that is over ADC threshold of 36
   std::map<int, TH1F*> HB_SOIminus_normalization; // depth
 
-  const int ADCenergy = 50; // about 3 GeV 
+  const int ADCenergy = 36; // about 3 GeV 
   const int FCenergy = 4800; // about 3 GeV 
   
   Long64_t nbytes = 0, nb = 0;
@@ -88,12 +101,14 @@ void HBStudy_nominalQIE::Loop()
 	if (HB_energy_byTS[ch_ieta].find(ch_depth) == HB_energy_byTS[ch_ieta].end()) HB_energy_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_energy_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("Energy in HB by TS, 2022 900 GeV;QIE11 Digi TS;Energy fraction in each TS (ADC)"),8,0,8);
 	if (HB_EarlyEnergy_byTS[ch_ieta].find(ch_depth) == HB_EarlyEnergy_byTS[ch_ieta].end()) HB_EarlyEnergy_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_EarlyEnergy_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("Early Energy in HB by TS, 2022 900 GeV;QIE11 Digi TS;Energy fraction in each TS (ADC)"),8,0,8);
 	if (HB_peak_byTS[ch_ieta].find(ch_depth) == HB_peak_byTS[ch_ieta].end()) HB_peak_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_peak_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("Peak Energy TS in HB;QIE11 Digi TS;Fraction of Events"),8,0,8);
-	if (HB_prompt_byTS[ch_ieta].find(ch_depth) == HB_prompt_byTS[ch_ieta].end()) HB_prompt_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_prompt_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("TDC=0 TS in HB;QIE11 Digi TS;Fraction of Events"),8,0,8);
+	if (HB_validTDC_byTS[ch_ieta].find(ch_depth) == HB_validTDC_byTS[ch_ieta].end()) HB_validTDC_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_validTDC_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("First Valid TDC TS in HB;QIE11 Digi TS;Fraction of Events"),9,-1,8);
+	if (HB_firstADC_byTS[ch_ieta].find(ch_depth) == HB_firstADC_byTS[ch_ieta].end()) HB_firstADC_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_firstADC_byTS_ieta%d_depth%d",ch_ieta,ch_depth),Form("First TS where ADC is over Threshold in HB;QIE11 Digi TS;Fraction of Events"),9,-1,8);
 	if (HB_SOIratio.find(ch_depth) == HB_SOIratio.end()) HB_SOIratio[ch_depth] = new TH1F(Form("HB_SOIratio_depth%d",ch_depth),Form("SOI/SOI+1 ratio in HB by i#eta for depth=%d;HB i#eta;#frac{SOI}{SOI+1} Ratio",ch_depth),33,-16,17);
 	if (HB_SOIratio_normalization.find(ch_depth) == HB_SOIratio_normalization.end()) HB_SOIratio_normalization[ch_depth] = new TH1F(Form("HB_SOIratio_normalization_depth%d",ch_depth),Form("SOI/SOI+1 ratio_normalization in HB by i#eta for depth=%d;HB i#eta;#frac{SOI}{SOI+1} Ratio Normalization",ch_depth),33,-16,17);
 	if (HB_SOIminus.find(ch_depth) == HB_SOIminus.end()) HB_SOIminus[ch_depth] = new TH1F(Form("HB_SOIminus_depth%d",ch_depth),Form("SOI-1 energy fraction in HB by i#eta for depth=%d;HB i#eta;Fraction of energy in SOI-1",ch_depth),33,-16,17);
 	if (HB_SOIminusADC.find(ch_depth) == HB_SOIminusADC.end()) HB_SOIminusADC[ch_depth] = new TH1F(Form("HB_SOIminusADC_depth%d",ch_depth),Form("SOI-1 ADC in HB by i#eta for depth=%d;HB i#eta;ADC in SOI-1",ch_depth),33,-16,17);
- if (HB_SOIminus_normalization.find(ch_depth) == HB_SOIminus_normalization.end()) HB_SOIminus_normalization[ch_depth] = new TH1F(Form("HB_SOIminus_normalization_depth%d",ch_depth),Form("SOI-1 normalization in HB by i#eta for depth=%d;HB i#eta;SOI-1  Normalization",ch_depth),33,-16,17);
+	if (HB_SOIminus36.find(ch_depth) == HB_SOIminus36.end()) HB_SOIminus36[ch_depth] = new TH1F(Form("HB_SOIminus36_depth%d",ch_depth),Form("Percent of SOI-1 with ADC>%d by i#eta for depth=%d;HB i#eta;Percent over ADC=%d",ADCenergy,ch_depth,ADCenergy),33,-16,17);
+	if (HB_SOIminus_normalization.find(ch_depth) == HB_SOIminus_normalization.end()) HB_SOIminus_normalization[ch_depth] = new TH1F(Form("HB_SOIminus_normalization_depth%d",ch_depth),Form("SOI-1 normalization in HB by i#eta for depth=%d;HB i#eta;SOI-1  Normalization",ch_depth),33,-16,17);
 
 	float totalEnergy = 0;
 	int oneTShigh = 0;
@@ -101,6 +116,7 @@ void HBStudy_nominalQIE::Loop()
 	float highestEnergy = 0;
 	int promptTS = -1;
 	int TDCvalidTS = -1;
+	int ADCfirstTS = -1;
 
 	float SOIminus_energy = QIE11DigiADC->at(ch).at(2);
 	float SOI_energy = QIE11DigiADC->at(ch).at(3);
@@ -108,37 +124,56 @@ void HBStudy_nominalQIE::Loop()
 
 	for (int TS = 0; TS < 8; TS++) {
           totalEnergy += QIE11DigiADC->at(ch).at(TS);
-	  if (QIE11DigiTDC->at(ch).at(TS) == 0) promptTS = TS; // find the TS where TDC is prompt, no requirement on energy of any channel to catch offsets
-	  if ((QIE11DigiTDC->at(ch).at(TS) == 0 || QIE11DigiTDC->at(ch).at(TS) == 1 || QIE11DigiTDC->at(ch).at(TS) == 2) && TDCvalidTS == -1) TDCvalidTS = TS; // find the first TS where TDC is valid, ensuring that all TDC before this TS were invalid (3). Might need to require that at least one channel is above 50 to get a 1-1 correspondence with the ADC peak plot...
+	  if (QIE11DigiTDC->at(ch).at(TS) == 0 && promptTS == -1) promptTS = TS; // find the first TS where TDC is prompt, no requirement on energy of any channel to catch offsets
+	  if (QIE11DigiTDC->at(ch).at(TS) != 3 && TDCvalidTS == -1) {
+	    TDCvalidTS = TS; // find the first TS where TDC is valid (0,1,2), ensuring that all TDC before this TS were invalid (3). Require that at least one channel is above 50 to get a 1-1 correspondence with the ADC peak plot - this is done below when the HB_validTDC_byTS is filled, requires highest energy to be non-zero, which enforces the requirement that a TS is over threshold, but not a specific TS.
+	    
+	    if (TS > 0) HB_ADCm_TDC->Fill(QIE11DigiADC->at(ch).at(TS-1), QIE11DigiTDC->at(ch).at(TS)); // 2D to see ADC and TDC correspondence for first valid TDC value, and offsetting ADC by 1
+	    HB_ADC_TDC->Fill(QIE11DigiADC->at(ch).at(TS), QIE11DigiTDC->at(ch).at(TS));
+	    if (TS < 7) HB_ADCp_TDC->Fill(QIE11DigiADC->at(ch).at(TS+1), QIE11DigiTDC->at(ch).at(TS));
 
-	  if (QIE11DigiTDC->at(ch).at(TS) != 3) {
-	    std::cout << "TDC values = " << QIE11DigiTDC->at(ch).at(0) << ", " << QIE11DigiTDC->at(ch).at(1)  << ", " << QIE11DigiTDC->at(ch).at(2) << ", " << QIE11DigiTDC->at(ch).at(3) << ", " << QIE11DigiTDC->at(ch).at(4) << ", " << QIE11DigiTDC->at(ch).at(5) << ", " << QIE11DigiTDC->at(ch).at(6) << ", " << QIE11DigiTDC->at(ch).at(7) << " and energy values for all TS are = " << QIE11DigiADC->at(ch).at(0) << ", " << QIE11DigiADC->at(ch).at(1) << ", " << QIE11DigiADC->at(ch).at(2) << ", " << QIE11DigiADC->at(ch).at(3) << ", " << QIE11DigiADC->at(ch).at(4) << ", " << QIE11DigiADC->at(ch).at(5) << ", " << QIE11DigiADC->at(ch).at(6) << ", " << QIE11DigiADC->at(ch).at(7) << " and ieta, depth = " << ch_ieta << ", " << ch_depth << std::endl;
+	    for (int adcTS = 0; adcTS < 8; adcTS++) {
+	      if (QIE11DigiTDC->at(ch).at(TS) == 0) HB_ADC_TDC0relativeTS->Fill(adcTS - TDCvalidTS, QIE11DigiADC->at(ch).at(adcTS));
+              if (QIE11DigiTDC->at(ch).at(TS) == 1) HB_ADC_TDC1relativeTS->Fill(adcTS - TDCvalidTS, QIE11DigiADC->at(ch).at(adcTS));
+              if (QIE11DigiTDC->at(ch).at(TS) == 2) HB_ADC_TDC2relativeTS->Fill(adcTS - TDCvalidTS, QIE11DigiADC->at(ch).at(adcTS));
+	    }
+
+	    //	    std::cout << "TDC values = " << QIE11DigiTDC->at(ch).at(0) << ", " << QIE11DigiTDC->at(ch).at(1)  << ", " << QIE11DigiTDC->at(ch).at(2) << ", " << QIE11DigiTDC->at(ch).at(3) << ", " << QIE11DigiTDC->at(ch).at(4) << ", " << QIE11DigiTDC->at(ch).at(5) << ", " << QIE11DigiTDC->at(ch).at(6) << ", " << QIE11DigiTDC->at(ch).at(7) << " and energy values for all TS are = " << QIE11DigiADC->at(ch).at(0) << ", " << QIE11DigiADC->at(ch).at(1) << ", " << QIE11DigiADC->at(ch).at(2) << ", " << QIE11DigiADC->at(ch).at(3) << ", " << QIE11DigiADC->at(ch).at(4) << ", " << QIE11DigiADC->at(ch).at(5) << ", " << QIE11DigiADC->at(ch).at(6) << ", " << QIE11DigiADC->at(ch).at(7) << " and ieta, depth = " << ch_ieta << ", " << ch_depth << std::endl;
 	  }
-	  //	  if (QIE11DigiFC->at(ch).at(TS) > FCenergy) {
-	  //	  if (QIE11DigiADC->at(ch).at(TS) > (ADCenergy + abs(ch_ieta))) {
+
 	  if (QIE11DigiADC->at(ch).at(TS) > ADCenergy) { // flat ADC cut
 	    oneTShigh = 1; // if any of the TS are above the energy threshold
+	    if (ADCfirstTS == -1) {
+	      ADCfirstTS = TS;
+	    }
 	    if (QIE11DigiADC->at(ch).at(TS) > highestEnergy) { // find the TS with the highest energy
 	      highestTS = TS;
-	      highestEnergy = QIE11DigiADC->at(ch).at(TS);
+	      highestEnergy = QIE11DigiADC->at(ch).at(highestTS);
 	    }
 	  } // end of energy requirement
 	} // end of TS loop
-	if (TDCvalidTS != -1) std::cout << TDCvalidTS << " = TDCvalidTS" << std::endl;
-	if ( oneTShigh == 1 ) std::cout << highestTS << " = TS with highest ADC energy" << std::endl;
+	//	if ( oneTShigh == 1 ) {
+	//	  std::cout << highestTS << " = TS with highest ADC energy, and first TS over ADC of " << ADCenergy << " = " << ADCfirstTS << std::endl;
+	//	  if (TDCvalidTS != -1) std::cout << TDCvalidTS << " = TDCvalidTS (given that one TS has high energy)" << std::endl;
+	//	}
 
-	if (highestEnergy > 0) HB_peak_byTS[ch_ieta][ch_depth]->Fill(highestTS,1);
-	if (promptTS >= 0) HB_prompt_byTS[ch_ieta][ch_depth]->Fill(promptTS,1);
+	if (highestEnergy > 0) {
+	  HB_peak_byTS[ch_ieta][ch_depth]->Fill(highestTS,1);
+	  HB_validTDC_byTS[ch_ieta][ch_depth]->Fill(TDCvalidTS,1);
+	  //	  if (TDCvalidTS == -1) std::cout << "TDC values = " << QIE11DigiTDC->at(ch).at(0) << ", " << QIE11DigiTDC->at(ch).at(1)  << ", " << QIE11DigiTDC->at(ch).at(2) << ", " << QIE11DigiTDC->at(ch).at(3) << ", " << QIE11DigiTDC->at(ch).at(4) << ", " << QIE11DigiTDC->at(ch).at(5) << ", " << QIE11DigiTDC->at(ch).at(6) << ", " << QIE11DigiTDC->at(ch).at(7) << " and energy values for all TS are = " << QIE11DigiADC->at(ch).at(0) << ", " << QIE11DigiADC->at(ch).at(1) << ", " << QIE11DigiADC->at(ch).at(2) << ", " << QIE11DigiADC->at(ch).at(3) << ", " << QIE11DigiADC->at(ch).at(4) << ", " << QIE11DigiADC->at(ch).at(5) << ", " << QIE11DigiADC->at(ch).at(6) << ", " << QIE11DigiADC->at(ch).at(7) << " and ieta, depth = " << ch_ieta << ", " << ch_depth << std::endl;
+	  HB_firstADC_byTS[ch_ieta][ch_depth]->Fill(ADCfirstTS,1); // find the first TS where ADC is over threshold. This will correspond with HB_validTDC_byTS plot best
+	  HB_ADC_TDC_TSs->Fill(ADCfirstTS, TDCvalidTS); // this is currently biased because I don't know the TDC threshold...
+	}
+	  //	if (promptTS >= 0) HB_prompt_byTS[ch_ieta][ch_depth]->Fill(promptTS,1);
 	if (oneTShigh == 1) { // if one TS has enough energy, fill in pulse shape distribution plot
 
 	  double SOI_ratio = SOI_energy / SOIplus_energy;
-	  //	  if (ch_ieta == 1) std::cout << SOI_ratio << " = SOI_ratio, with SOI energy and SOI+1 energy = " << SOI_energy << ", " << SOIplus_energy << " for ieta = " << ch_ieta << std::endl;
-	  //          if (ch_ieta == 15) std::cout << SOI_ratio << " = SOI_ratio, with SOI energy and SOI+1 energy = " << SOI_energy << ", " << SOIplus_energy << " for ieta = " << ch_ieta << std::endl;
 	  HB_SOIratio[ch_depth]->Fill(ch_ieta, SOI_ratio);
 	  HB_SOIratio_normalization[ch_depth]->Fill(ch_ieta, 1);
 	  HB_SOIratio_SOIminus->Fill(SOI_ratio,QIE11DigiADC->at(ch).at(2));
 	  HB_SOIminus[ch_depth]->Fill(ch_ieta, SOIminus_energy / totalEnergy);
           HB_SOIminusADC[ch_depth]->Fill(ch_ieta, SOIminus_energy);
+	  if (SOIminus_energy >= 36) HB_SOIminus36[ch_depth]->Fill(ch_ieta, 1); // fill if SOI-1 energy is over TDC threshold (ADC=36)
           HB_SOIminus_normalization[ch_depth]->Fill(ch_ieta, 1);
 
 	  for (int TS = 0; TS < 8; TS++) {
@@ -158,7 +193,7 @@ void HBStudy_nominalQIE::Loop()
   float commentaryXpos = 0.6;
   float depthXpos = 0.2;
 
-  // colors used = 30 (green), 38 (blue), 40 (purple), 42 (orange / tan), 45/46 (red), 49 (muave)
+  // colors used = 9 (dark blue), 30 (green), 38 (blue), 40 (purple), 42 (orange / tan), 45/46/47 (red), 49 (muave)
   // average pulse shape in HB
   TCanvas *cHB_pulse_shape;
 
@@ -213,18 +248,90 @@ void HBStudy_nominalQIE::Loop()
     gPad->Update();
     cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_SOIminusADC_2022_900gev_depth%d.png",it->first));
   }
+  // fraction of SOI-1 over ADC=36
+  for (std::map<int,TH1F*>::iterator it = HB_SOIminus36.begin() ; it != HB_SOIminus36.end(); it++) { // it->first is depth, it->second is HB_SOIminus36
+    cHB_pulse_shape = new TCanvas(); // reset canvas
+    HB_SOIminus36[it->first]->Divide(HB_SOIminus_normalization[it->first]); // divide HB_SOIminus36 by HB_SOIminus_normalization
+    HB_SOIminus36[it->first]->SetFillColor(47);
+    HB_SOIminus36[it->first]->SetMaximum(0.005);
+    HB_SOIminus36[it->first]->SetMinimum(0.);
+    HB_SOIminus36[it->first]->Draw("bar1");
+    HB_SOIminus36[it->first]->Write();
 
+    latex->DrawLatex(0.12, 0.85, cmsLabel);
+    latex->DrawLatex(commentaryXpos-0.45, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+    latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+
+    gPad->Update();
+    cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_SOIminus36_2022_900gev_depth%d.png",it->first));
+  }
 
   // SOI minus vs SOI-1 energy
   cHB_pulse_shape = new TCanvas(); // reset canvas
   gPad->SetLogz();
   HB_SOIratio_SOIminus->Draw("COLZ");
   HB_SOIratio_SOIminus->Write();
-  
   latex->DrawLatex(0.12, 0.85, cmsLabel);
-  
   gPad->Update();
   cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_SOIratio2D_2022_900gev.png"));
+
+  // TDC vs ADC ratio
+  cHB_pulse_shape = new TCanvas(); // reset canvas
+  gPad->SetLogz();
+  HB_ADCm_TDC->Draw("COLZ");
+  HB_ADCm_TDC->Write();
+  latex->DrawLatex(0.12, 0.85, cmsLabel);
+  gPad->Update();
+  cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_TDC_ADCm_2022_900gev.png"));
+
+  cHB_pulse_shape = new TCanvas(); // reset canvas
+  gPad->SetLogz();
+  HB_ADC_TDC->Draw("COLZ");
+  HB_ADC_TDC->Write();
+  latex->DrawLatex(0.12, 0.85, cmsLabel);
+  gPad->Update();
+  cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_TDC_ADC_2022_900gev.png"));
+
+  cHB_pulse_shape = new TCanvas(); // reset canvas
+  gPad->SetLogz();
+  HB_ADCp_TDC->Draw("COLZ");
+  HB_ADCp_TDC->Write();
+  latex->DrawLatex(0.12, 0.85, cmsLabel);
+  gPad->Update();
+  cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_TDC_ADCp_2022_900gev.png"));
+
+  cHB_pulse_shape = new TCanvas(); // reset canvas
+  gPad->SetLogz();
+  HB_ADC_TDC0relativeTS->Draw("COLZ");
+  HB_ADC_TDC0relativeTS->Write();
+  latex->DrawLatex(0.12, 0.85, cmsLabel);
+  gPad->Update();
+  cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_ADC_TDC0relativeTS_2022_900gev.png"));
+
+  cHB_pulse_shape = new TCanvas(); // reset canvas
+  gPad->SetLogz();
+  HB_ADC_TDC1relativeTS->Draw("COLZ");
+  HB_ADC_TDC1relativeTS->Write();
+  latex->DrawLatex(0.12, 0.85, cmsLabel);
+  gPad->Update();
+  cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_ADC_TDC1relativeTS_2022_900gev.png"));
+
+  cHB_pulse_shape = new TCanvas(); // reset canvas
+  gPad->SetLogz();
+  HB_ADC_TDC2relativeTS->Draw("COLZ");
+  HB_ADC_TDC2relativeTS->Write();
+  latex->DrawLatex(0.12, 0.85, cmsLabel);
+  gPad->Update();
+  cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_ADC_TDC2relativeTS_2022_900gev.png"));
+
+  // TDC vs ADC TS plots
+  cHB_pulse_shape = new TCanvas(); // reset canvas
+  gPad->SetLogz();
+  HB_ADC_TDC_TSs->Draw("COLZ");
+  HB_ADC_TDC_TSs->Write();
+  latex->DrawLatex(0.12, 0.85, cmsLabel);
+  gPad->Update();
+  cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_TDC_ADC_TSs_2022_900gev.png"));
 
   //  HB_energy_byTS
   for (int ieta = -16; ieta <= 16; ieta++) {
@@ -280,13 +387,46 @@ void HBStudy_nominalQIE::Loop()
       cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_earlyPulseshape_2022_900gev_ieta%d_depth%d.png",ieta,it->first));
     }
 
+    //HB_firstADC_byTS
+    TCanvas *cHB_firstADC_4 = new TCanvas("c","c",3200,600);
+    cHB_firstADC_4->Divide(4,1,0.01,0.01);
+    for (std::map<int,TH1F*>::iterator it = HB_firstADC_byTS[ieta].begin() ; it != HB_firstADC_byTS[ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_firstADC_byTS
+      cHB_pulse_shape = new TCanvas(); // reset canvas
+      HB_firstADC_byTS[ieta][it->first]->Scale(1/HB_firstADC_byTS[ieta][it->first]->Integral());
+      if (HB_firstADC_byTS[ieta][it->first]->GetEntries() == 0) continue;
+      HB_firstADC_byTS[ieta][it->first]->SetFillColor(38);
+      HB_firstADC_byTS[ieta][it->first]->Draw("bar1");
+      HB_firstADC_byTS[ieta][it->first]->Write();
+      HB_firstADC_byTS[ieta][it->first]->SetMaximum(1);
+      HB_firstADC_byTS[ieta][it->first]->SetMinimum(0.);
+      
+      latex->DrawLatex(0.12, 0.85, cmsLabel);
+      
+      latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
+      latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+      
+      gPad->Update();
+      //      cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_firstADC_2022_900gev_ieta%d_depth%d.png",ieta,it->first));
+      
+      cHB_firstADC_4->cd(it->first);
+      HB_firstADC_byTS[ieta][it->first]->SetTitle("");
+      HB_firstADC_byTS[ieta][it->first]->Draw("bar1");
+      HB_firstADC_byTS[ieta][it->first]->Write();
+      latex->DrawLatex(depthXpos, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+      if (it->first == 2) latex->DrawLatex(0., 0.95, Form("#scale[1.2]{First TS where ADC is over Threshold in HB, for i#eta=%d}",ieta));
+      gPad->Update();
+    }
+    latex->DrawLatex(0.5, 0.95, cmsLabel);
+    cHB_firstADC_4->SaveAs(Form("2022_plots_nominalQIE/HB_firstADC_2022_900gev_ieta%d.png",ieta));
+
+
     TCanvas *cHB_peak_4 = new TCanvas("c","c",3200,600);
     cHB_peak_4->Divide(4,1,0.01,0.01);
     for (std::map<int,TH1F*>::iterator it = HB_peak_byTS[ieta].begin() ; it != HB_peak_byTS[ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_peak_byTS
       cHB_pulse_shape = new TCanvas(); // reset canvas
       HB_peak_byTS[ieta][it->first]->Scale(1/HB_peak_byTS[ieta][it->first]->Integral());
       if (HB_peak_byTS[ieta][it->first]->GetEntries() == 0) continue;
-      HB_peak_byTS[ieta][it->first]->SetFillColor(38);
+      HB_peak_byTS[ieta][it->first]->SetFillColor(9);
       HB_peak_byTS[ieta][it->first]->Draw("bar1");
       HB_peak_byTS[ieta][it->first]->Write();
       HB_peak_byTS[ieta][it->first]->SetMaximum(1);
@@ -311,35 +451,35 @@ void HBStudy_nominalQIE::Loop()
     latex->DrawLatex(0.5, 0.95, cmsLabel);
     cHB_peak_4->SaveAs(Form("2022_plots_nominalQIE/HB_peak_2022_900gev_ieta%d.png",ieta));
 
-    TCanvas *cHB_prompt_4 = new TCanvas("c","c",3200,600);
-    cHB_prompt_4->Divide(4,1,0.01,0.01);
-    for (std::map<int,TH1F*>::iterator it = HB_prompt_byTS[ieta].begin() ; it != HB_prompt_byTS[ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_prompt_byTS
+    TCanvas *cHB_validTDC_4 = new TCanvas("c","c",3200,600);
+    cHB_validTDC_4->Divide(4,1,0.01,0.01);
+    for (std::map<int,TH1F*>::iterator it = HB_validTDC_byTS[ieta].begin() ; it != HB_validTDC_byTS[ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_validTDC_byTS
       cHB_pulse_shape = new TCanvas(); // reset canvas
-      HB_prompt_byTS[ieta][it->first]->Scale(1/HB_prompt_byTS[ieta][it->first]->Integral());
-      if (HB_prompt_byTS[ieta][it->first]->GetEntries() == 0) continue;
-      HB_prompt_byTS[ieta][it->first]->SetFillColor(40);
-      HB_prompt_byTS[ieta][it->first]->Draw("bar1");
-      HB_prompt_byTS[ieta][it->first]->Write();
-      HB_prompt_byTS[ieta][it->first]->SetMaximum(1);
-      HB_prompt_byTS[ieta][it->first]->SetMinimum(0.);
+      HB_validTDC_byTS[ieta][it->first]->Scale(1/HB_validTDC_byTS[ieta][it->first]->Integral());
+      if (HB_validTDC_byTS[ieta][it->first]->GetEntries() == 0) continue;
+      HB_validTDC_byTS[ieta][it->first]->SetFillColor(40);
+      HB_validTDC_byTS[ieta][it->first]->Draw("bar1");
+      HB_validTDC_byTS[ieta][it->first]->Write();
+      HB_validTDC_byTS[ieta][it->first]->SetMaximum(1);
+      HB_validTDC_byTS[ieta][it->first]->SetMinimum(0.);
 
       latex->DrawLatex(0.12, 0.85, cmsLabel); 
 
       latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
 
       gPad->Update();
-      cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_prompt_2022_900gev_ieta%d_depth%d.png",ieta,it->first));
+      cHB_pulse_shape->SaveAs(Form("2022_plots_nominalQIE/HB_validTDC_2022_900gev_ieta%d_depth%d.png",ieta,it->first));
 
-      cHB_prompt_4->cd(it->first);
-      HB_prompt_byTS[ieta][it->first]->SetTitle("");
-      HB_prompt_byTS[ieta][it->first]->Draw("bar1");
-      HB_prompt_byTS[ieta][it->first]->Write();
+      cHB_validTDC_4->cd(it->first);
+      HB_validTDC_byTS[ieta][it->first]->SetTitle("");
+      HB_validTDC_byTS[ieta][it->first]->Draw("bar1");
+      HB_validTDC_byTS[ieta][it->first]->Write();
       latex->DrawLatex(depthXpos, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
-      if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{TDC=0 TS in HB, for i#eta=%d}",ieta));
+      if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{First Valid TDC TS in HB, for i#eta=%d}",ieta));
       gPad->Update();
     }
     latex->DrawLatex(0.5, 0.95, cmsLabel);
-    cHB_prompt_4->SaveAs(Form("2022_plots_nominalQIE/HB_prompt_2022_900gev_ieta%d.png",ieta));
+    cHB_validTDC_4->SaveAs(Form("2022_plots_nominalQIE/HB_validTDC_2022_900gev_ieta%d.png",ieta));
   
     /*    HB_peak_byTS[ieta][1]->SetTitle(Form("Energy Peak in HB by TS, 2022 900 GeV (with ADC>%d) (ieta=%d,depth=all);QIE11 Digi TS;TS of Energy Peak",ADCenergy,ieta));
     cHB_pulse_shape = new TCanvas();
