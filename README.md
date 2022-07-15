@@ -40,6 +40,10 @@ Followed [root macros tutorial](https://root.cern.ch/root/htmldoc/guides/primer/
 ```
 g++ -o process_events process_events.C `root-config --cflags --libs`
 ./process_events
+
+g++ -o process_events_QIE_TP process_events_QIE_TP.C `root-config --cflags --libs`
+g++ -o process_events_nominalQIE process_events_nominalQIE.C `root-config --cflags --libs`
+
 ```
 If running interactively, this would be via:
 ```
