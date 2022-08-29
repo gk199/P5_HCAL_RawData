@@ -1,5 +1,16 @@
 # P5_HCAL_RawData
-This is used to analyze the 900 GeV collision data when QIE phase scans were taken for the time alignment of the HCAL. PFG ntuples are already created following the [HCAL tuple maker](https://gitlab.cern.ch/cmshcal/hcalpfg/HcalTupleMaker/-/tree/PFG-CMSSW_12_3_X/) and saved to `/eos/cms//store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/`. In the ntuple, there is a branch called `laserType`, which is the phase delay setting. This corresponds to the QIE phase delay below:
+This is used to analyze the 900 GeV collision data when QIE phase scans were taken for the time alignment of the HCAL. PFG ntuples are already created following the [HCAL tuple maker](https://gitlab.cern.ch/cmshcal/hcalpfg/HcalTupleMaker/-/tree/PFG-CMSSW_12_3_X/) and saved to `/eos/cms//store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/`. 
+
+## Ntuple Instructions
+```
+cmsenv
+scram b -j 8
+cd HcalTupleMaker/test
+cmsRun pfg_Global_RAW_cfg_addTP.py
+```
+In this config file, edit where the source and output files are stored. 
+
+In the ntuple, there is a branch called `laserType`, which is the phase delay setting. This corresponds to the QIE phase delay below:
 
 | ns    | setting |
 | ------|------ |
@@ -34,6 +45,8 @@ HCAL local runs were taken with a LED scan to check the TDC-LUTs loaded in HB. T
 [Elog](http://cmsonline.cern.ch/cms-elog/1128105) lists the run numbers of interest and the spacing between LED delays (not during collisions). 
 
 For the LED and QIE scan, the gitlab issue [HCAL Ops #119](https://gitlab.cern.ch/cmshcal/docs/-/issues/119#note_5280563) details all the settings.  
+
+QIE phase scan during collisions: Run 356815, with the [HCAL elog](https://cmsonline.cern.ch/webcenter/portal/cmsonline/Common/Elog?_piref683379043.strutsAction=%2FviewMessageDetails.do%3FmsgId%3D1150378).
 
 ## How to Run
 Followed [root macros tutorial](https://root.cern.ch/root/htmldoc/guides/primer/ROOTPrimer.html#root-macros) to convert from running interactively in root to a complied version. Now the running is done via:
