@@ -115,14 +115,16 @@ void HBStudy_plotByQIE::Loop()
       int TPieta = HcalTriggerPrimitiveIEta->at(ch);
       int TPiphi = HcalTriggerPrimitiveIPhi->at(ch);
 
+      if (TPieta >= 9 && TPieta <= 12 && TPiphi == 53) continue; // skip the towers where ieta is 9-12 and iphi is 53, as this is where fine grain bits are set all over the place, without corresponding TDC
+
       if (abs(TPieta) <= 16) {
-	if (FB1_by_TS.find(TPieta) == FB1_by_TS.end()) FB1_by_TS[TPieta] = new TH1F(Form("FB1_byTS_ieta%d",TPieta),Form("Prompt finegrain bit (1) by QIE delay, 2022 13.6 TeV;QIE Relative Shift (ns);Prompt finegrain bits"),11,-2,9);
-        if (FB2_by_TS.find(TPieta) == FB2_by_TS.end()) FB2_by_TS[TPieta] = new TH1F(Form("FB2_byTS_ieta%d",TPieta),Form("Prompt finegrain bit (2) by QIE delay, 2022 13.6 TeV;QIE Relative Shift (ns);Delay 1 finegrain bits"),11,-2,9);
-        if (FB3_by_TS.find(TPieta) == FB3_by_TS.end()) FB3_by_TS[TPieta] = new TH1F(Form("FB3_byTS_ieta%d",TPieta),Form("Prompt finegrain bit (3) by QIE delay, 2022 13.6 TeV;QIE Relative Shift (ns);Delay 2 finegrain bits"),11,-2,9);
+	if (FB1_by_TS.find(TPieta) == FB1_by_TS.end()) FB1_by_TS[TPieta] = new TH1F(Form("FB1_byTS_ieta%d",TPieta),Form("Prompt finegrain bit (1) by QIE delay;QIE Relative Shift (ns);Prompt finegrain bits"),11,-2,9);
+        if (FB2_by_TS.find(TPieta) == FB2_by_TS.end()) FB2_by_TS[TPieta] = new TH1F(Form("FB2_byTS_ieta%d",TPieta),Form("Delay 1 finegrain bit (2) by QIE delay;QIE Relative Shift (ns);Delay 1 finegrain bits"),11,-2,9);
+        if (FB3_by_TS.find(TPieta) == FB3_by_TS.end()) FB3_by_TS[TPieta] = new TH1F(Form("FB3_byTS_ieta%d",TPieta),Form("Delay 2 finegrain bit (3) by QIE delay;QIE Relative Shift (ns);Delay 2 finegrain bits"),11,-2,9);
 	if (Tower_valid.find(TPieta) == Tower_valid.end()) Tower_valid[TPieta] = new TH1F(Form("Tower_valid_ieta%d",TPieta),Form("Tower with valid energy in ieta=%d;QIE Relative Shift (ns);Fraction of Towers",TPieta),11,-2,9);
-	if (h1_fg1.find(TPieta) == h1_fg1.end()) h1_fg1[TPieta] = new TH1F(Form("FG1_eff_ieta%d",TPieta),Form("FG1 efficiency;QIE Relative Shift (ns);Finegrain bit fraction"),11,-2,9);
-        if (h1_fg2.find(TPieta) == h1_fg2.end()) h1_fg2[TPieta] = new TH1F(Form("FG2_eff_ieta%d",TPieta),Form("FG2 efficiency;QIE Relative Shift (ns);Finegrain bit fraction"),11,-2,9);
-        if (h1_fg3.find(TPieta) == h1_fg3.end()) h1_fg3[TPieta] = new TH1F(Form("FG3_eff_ieta%d",TPieta),Form("FG3 efficiency;QIE Relative Shift (ns);Finegrain bit fraction"),11,-2,9);
+	if (h1_fg1.find(TPieta) == h1_fg1.end()) h1_fg1[TPieta] = new TH1F(Form("FG1_eff_ieta%d",TPieta),Form("Prompt efficiency;QIE Relative Shift (ns);Finegrain bit fraction"),11,-2,9);
+        if (h1_fg2.find(TPieta) == h1_fg2.end()) h1_fg2[TPieta] = new TH1F(Form("FG2_eff_ieta%d",TPieta),Form("Delay1 efficiency;QIE Relative Shift (ns);Finegrain bit fraction"),11,-2,9);
+        if (h1_fg3.find(TPieta) == h1_fg3.end()) h1_fg3[TPieta] = new TH1F(Form("FG3_eff_ieta%d",TPieta),Form("Delay2 efficiency;QIE Relative Shift (ns);Finegrain bit fraction"),11,-2,9);
 
 	//	for (int TS = 0; TS < 4; TS++) {
 	int TS = 2;
@@ -137,7 +139,7 @@ void HBStudy_plotByQIE::Loop()
 	if (fg1 == 1) FB1_by_TS[TPieta]->Fill(laserType,1);
 	if (fg2 == 1) FB2_by_TS[TPieta]->Fill(laserType,1);
 	if (fg3 == 1) FB3_by_TS[TPieta]->Fill(laserType,1);
-	if (totalEnergy > 0) Tower_valid[TPieta]->Fill(laserType,1);
+	if (totalEnergy > 3) Tower_valid[TPieta]->Fill(laserType,1); // is total energy in GeV? this is compressed ET...not sure if linearized or not yet. might make more sense to require >3 gev to have a realistic energy threshold on the tower
 
 	//	} // end TS loop
       } // end HB loop
@@ -229,12 +231,12 @@ void HBStudy_plotByQIE::Loop()
     cHB_eff_ieta = new TCanvas(); // reset canvas
     if (TEfficiency::CheckConsistency(*it->second,*Tower_valid[it->first])) {
       TEfficiency *effHB = new TEfficiency(*it->second,*Tower_valid[it->first]);
-      effHB->SetTitle(Form("FG1 (Prompt) Rates in HB, 2022 13.6 TeV collisions data (ieta=%d)",it->first));
+      effHB->SetTitle(Form("Prompt (FG1) Rates in HB (ieta=%d)",it->first));
       effHB->SetLineWidth(2.);
       effHB->SetLineColor(kBlack);
       effHB->Draw();
       latex->DrawLatex(0.12, 0.85, cmsLabel);
-      latex->DrawLatex(commentaryXpos - 0.4, 0.65, Form("#scale[0.8]{i#eta=%d}",it->first));
+      //      latex->DrawLatex(commentaryXpos - 0.45, 0.7, Form("#scale[0.8]{i#eta=%d}",it->first));
       gPad->Update();
 
       for (int i=0; i<laserList.size(); i++) h1_fg1[it->first]->Fill(laserList[i],effHB->GetEfficiency(laserList[i]+3)); // h1_fg1 is now the efficiencies of fg1 // +3 needed to shift laser (starting at -2) to bin 1
@@ -261,10 +263,12 @@ void HBStudy_plotByQIE::Loop()
     cHB_eff_ieta = new TCanvas(); // reset canvas
     if (TEfficiency::CheckConsistency(*it->second,*Tower_valid[it->first])) {
       TEfficiency *effHB = new TEfficiency(*it->second,*Tower_valid[it->first]);
-      effHB->SetTitle(Form("FG2 (Delay 1) Rates in HB, 2022 13.6 TeV collisions data (ieta=%d)",it->first));
+      effHB->SetTitle(Form("Delay 1 (FG2) Rates in HB (ieta=%d)",it->first));
       effHB->SetLineWidth(2.);
       effHB->SetLineColor(kBlack);
       effHB->Draw();
+      latex->DrawLatex(0.12, 0.85, cmsLabel);
+      //      latex->DrawLatex(commentaryXpos - 0.45, 0.7, Form("#scale[0.8]{i#eta=%d}",it->first));
       gPad->Update();
       //      effHB->GetPaintedGraph()->SetMaximum(1);
       //      effHB->GetPaintedGraph()->SetMinimum(0.99);
@@ -291,10 +295,12 @@ void HBStudy_plotByQIE::Loop()
     cHB_eff_ieta = new TCanvas(); // reset canvas
     if (TEfficiency::CheckConsistency(*it->second,*Tower_valid[it->first])) {
       TEfficiency *effHB = new TEfficiency(*it->second,*Tower_valid[it->first]);
-      effHB->SetTitle(Form("FG3 (Delay 3) Rates in HB, 2022 13.6 TeV collisions data (ieta=%d)",it->first));
+      effHB->SetTitle(Form("Delay 2 (FG3) Rates in HB (ieta=%d)",it->first));
       effHB->SetLineWidth(2.);
       effHB->SetLineColor(kBlack);
       effHB->Draw();
+      latex->DrawLatex(0.12, 0.85, cmsLabel);
+      //      latex->DrawLatex(commentaryXpos - 0.45, 0.7, Form("#scale[0.8]{i#eta=%d}",it->first));
       gPad->Update();
 
       for (int i=0; i<laserList.size(); i++) h1_fg3[it->first]->Fill(laserList[i],effHB->GetEfficiency(laserList[i]+3)); // h1_fg3 is now the efficiencies of fg3
@@ -315,11 +321,18 @@ void HBStudy_plotByQIE::Loop()
     h1_fg3[it->first]->SetFillColor(30);
     h1_fg3[it->first]->SetFillStyle(1001);
     hstack->Add(h1_fg3[it->first]);
-    //    hstack->SetMaximum(0.1);  
+    hstack->SetMaximum(0.3);  
     cs = new TCanvas("cs","cs");
+    latex->DrawLatex(0.12, 0.85, cmsLabel);
+    latex->DrawLatex(commentaryXpos - 0.5, 0.7, Form("#scale[0.8]{i#eta=%d}",it->first));
+    gPad->Update();
     hstack->Draw("bar");
-    hstack->SetTitle(Form("FG Efficiencies in HB, 2022 13.6 TeV collisions data (ieta=%d)",it->first));
+    hstack->SetTitle(Form("FG Efficiencies in HB (ieta=%d)",it->first));
+    hstack->GetXaxis()->SetTitle("Relative QIE Offset (ns)");
+    hstack->GetYaxis()->SetTitle("Fraction of towers with FG bit set");
     gPad->BuildLegend(0.75,0.72,0.95,0.92,"");
+    latex->DrawLatex(0.12, 0.85, cmsLabel);
+    gPad->Update();
     cs->SaveAs(Form("2022_plots_relativeScan_Aug/ScanOffset/FB_by_scanOffset_2022_13tev_ieta%d_fractionalOverlay.png",it->first));
   }
 }

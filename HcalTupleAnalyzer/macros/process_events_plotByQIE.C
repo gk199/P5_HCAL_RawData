@@ -18,6 +18,8 @@ void process_events_plotByQIE() {
   chain->Add("file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_QIEphasescan_relNominal_run356815_5.root",0);
   chain->Add("file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_QIEphasescan_relNominal_run356815_6.root",0);
   chain->Add("file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_QIEphasescan_relNominal_run356815_7.root",0);
+  // this is Aug 25 normal run
+  chain->Add("file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_run357900.root",0);
 
   chain->ls();
   std::cout << "Total number of entries: " << chain->GetEntries() << std::endl;
