@@ -179,7 +179,7 @@ void HcalTupleMaker_QIE11Digis::produce(edm::Event &iEvent,
   std::unique_ptr<std::vector<float>> timetdc(new std::vector<float>());
   std::unique_ptr<std::vector<double>> timefc(new std::vector<double>());
   std::unique_ptr<std::vector<double>> totFC(new std::vector<double>());
-  std::unique_ptr<int> lasertype(new int()); // this was commented out
+  //  std::unique_ptr<int> lasertype(new int()); // this was commented out
   std::unique_ptr<std::vector<std::vector<int>>> soi(
       new std::vector<std::vector<int>>());
   std::unique_ptr<std::vector<std::vector<int>>> adc(
@@ -212,9 +212,9 @@ void HcalTupleMaker_QIE11Digis::produce(edm::Event &iEvent,
         std::cout << "Could not find uMNio " << _taguMNio << std::endl;
         use_event = false;
       }
-      std::unique_ptr<int> lasertype(new int(cumnio->valueUserWord(0)));
+      std::unique_ptr<int> lasertype(new int(cumnio->valueUserWord(1))); // (0))) in the gitlab code
       iEvent.put(move(lasertype), "laserType");
-      if (int(cumnio->valueUserWord(0)) != 0) std::cout << "storing laser info, which is non-zero at " << int(cumnio->valueUserWord(0)) << std::endl;
+      //      if (int(cumnio->valueUserWord(1)) != 0) std::cout << "storing laser info, which is non-zero at " << int(cumnio->valueUserWord(1)) << std::endl;
       //      std::cout << "Laser type is " << lasertype << std::endl;
     } else {
       std::unique_ptr<int> lasertype(new int());
