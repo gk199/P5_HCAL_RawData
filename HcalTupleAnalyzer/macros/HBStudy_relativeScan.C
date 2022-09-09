@@ -108,6 +108,7 @@ void HBStudy_relativeScan::Loop()
 	int QIE_TDC0_TS = -1;
 	for (int QIE_TS = 0; QIE_TS < 8; QIE_TS++) {
 	  // find first TS where TDC = 0
+	  // if (ch_ieta >=9 && ch_ieta <= 12 && QIE11DigiTDC->at(ch).at(QIE_TS) != 3) std::cout << QIE_TS << " = TS where QIE digi TDC = " << QIE11DigiTDC->at(ch).at(QIE_TS) << " at ieta, iphi = " << ch_ieta << ", " << ch_iphi << "                                           for event number = " << jentry << std::endl;
 	  if (QIE11DigiTDC->at(ch).at(QIE_TS) == 0 && QIE_TDC0_TS == -1) {
 	    QIE_TDC0_TS = QIE_TS;
 	    //	    std::cout << QIE_TDC0_TS << " = TS where QIE digi TDC=0 at ieta, iphi = " << ch_ieta << ", " << ch_iphi << "                                 for event number = " << jentry << std::endl;
@@ -145,6 +146,7 @@ void HBStudy_relativeScan::Loop()
 	  if (fg1 == 1) FB1_by_TS[laserType][TPieta]->Fill(TS,1);
           if (fg2 == 1) FB2_by_TS[laserType][TPieta]->Fill(TS,1);
           if (fg3 == 1) FB3_by_TS[laserType][TPieta]->Fill(TS,1);
+	  //	  if ((TPieta >= 9 || TPieta <= 12) && (fg1 + fg2 + fg3 > 0)) std::cout << "fg1, fg2, fg3 = " << fg1 << ", " << fg2 << ", " << fg3 << " at ieta, iphi = " << TPieta << ", " << TPiphi << "                for event number = " << jentry << std::endl;
 	  if (fg1 == 1) { // && (TPieta < 9 || TPieta > 12)) {
 	    //	    std::cout << TS << " = TS where TP fine grain bit 1 (prompt) set at ieta, iphi = " << TPieta << ", " << TPiphi << "                for event number = " << jentry << std::endl;
 	    //	    std::cout << HcalTriggerPrimitiveCompressedEt->at(ch).at(0) << ", " << HcalTriggerPrimitiveCompressedEt->at(ch).at(1) << ", " << HcalTriggerPrimitiveCompressedEt->at(ch).at(2) << ", " << HcalTriggerPrimitiveCompressedEt->at(ch).at(3) << " TP compressed ET for TS = 0,1,2,3" << std::endl;
@@ -196,7 +198,7 @@ void HBStudy_relativeScan::Loop()
 	  if (QIE11DigiTDC->at(ch).at(TS) != 3 && TDCvalidTS == -1) {
 	    TDCvalidTS = TS; // find the first TS where TDC is valid (0,1,2), ensuring that all TDC before this TS were invalid (3). Require that at least one channel is above 50 to get a 1-1 correspondence with the ADC peak plot - this is done below when the HB_validTDC_byTS is filled, requires highest energy to be non-zero, which enforces the requirement that a TS is over threshold, but not a specific TS.
 
-	    if (laserType == 2) {
+	    if (laserType == 0) {
 	      for (int adcTS = 0; adcTS < 8; adcTS++) {
 		if (QIE11DigiTDC->at(ch).at(TS) == 0) {
 		  HB_ADC_TDC0relativeTS->Fill(adcTS - TDCvalidTS, QIE11DigiADC->at(ch).at(adcTS));
@@ -280,7 +282,7 @@ void HBStudy_relativeScan::Loop()
       latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
       
       gPad->Update();
-      cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/Scan%d/HB_SOIratio_2022_13tev_depth%d.png",laser,it->first));
+      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_SOIratio_2022_13tev_depth%d.png",laser,it->first));
       // 2022_plots_Run357900
       // 2022_plots_relativeScan_Aug
     }
@@ -299,7 +301,7 @@ void HBStudy_relativeScan::Loop()
       latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
       
       gPad->Update();
-      cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/Scan%d/HB_SOIminus_2022_13tev_depth%d.png",laser,it->first));
+      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_SOIminus_2022_13tev_depth%d.png",laser,it->first));
     }
     // HB_SOI minus energy
     for (std::map<int,TH1F*>::iterator it = HB_SOIminusADC[laser].begin() ; it != HB_SOIminusADC[laser].end(); it++) { // it->first is depth, it->second is HB_SOIminusADC
@@ -316,7 +318,7 @@ void HBStudy_relativeScan::Loop()
       latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
       
       gPad->Update();
-      cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/Scan%d/HB_SOIminusADC_2022_13tev_depth%d.png",laser,it->first));
+      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_SOIminusADC_2022_13tev_depth%d.png",laser,it->first));
     }
     // fraction of SOI-1 over ADC=36
     for (std::map<int,TH1F*>::iterator it = HB_SOIminus36[laser].begin() ; it != HB_SOIminus36[laser].end(); it++) { // it->first is depth, it->second is HB_SOIminus36
@@ -334,7 +336,7 @@ void HBStudy_relativeScan::Loop()
       latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
       
       gPad->Update();
-      cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/Scan%d/HB_SOIminus36_2022_13tev_depth%d.png",laser,it->first));
+      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_SOIminus36_2022_13tev_depth%d.png",laser,it->first));
     }
   }
 
@@ -344,7 +346,7 @@ void HBStudy_relativeScan::Loop()
   HB_ADC_TDC0relativeTS->Write();
   latex->DrawLatex(0.12, 0.85, cmsLabel);
   gPad->Update();
-  cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/HB_ADC_TDC0relativeTS_2022_13tev.png"));
+  cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_ADC_TDC0relativeTS_2022_13tev.png"));
 
   cHB_pulse_shape = new TCanvas(); // reset canvas
   gPad->SetLogz();
@@ -352,7 +354,7 @@ void HBStudy_relativeScan::Loop()
   HB_ADC_TDC1relativeTS->Write();
   latex->DrawLatex(0.12, 0.85, cmsLabel);
   gPad->Update();
-  cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/HB_ADC_TDC1relativeTS_2022_13tev.png"));
+  cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_ADC_TDC1relativeTS_2022_13tev.png"));
 
   cHB_pulse_shape = new TCanvas(); // reset canvas
   gPad->SetLogz();
@@ -360,7 +362,7 @@ void HBStudy_relativeScan::Loop()
   HB_ADC_TDC2relativeTS->Write();
   latex->DrawLatex(0.12, 0.85, cmsLabel);
   gPad->Update();
-  cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/HB_ADC_TDC2relativeTS_2022_13tev.png"));
+  cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_ADC_TDC2relativeTS_2022_13tev.png"));
 
   //  HB_energy_byTS
   for (int i=0; i<laserList.size(); i++) {
@@ -387,7 +389,7 @@ void HBStudy_relativeScan::Loop()
 	latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
 	
 	gPad->Update();
-	//      cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/HB_pulseshape_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
+	//      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_pulseshape_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
 	
 	cHB_pulse_4->cd(it->first);
 	HB_energy_byTS[laser][ieta][it->first]->SetTitle("");
@@ -398,7 +400,7 @@ void HBStudy_relativeScan::Loop()
 	gPad->Update();
       }
       latex->DrawLatex(0.5, 0.95, cmsLabel);
-      cHB_pulse_4->SaveAs(Form("2022_plots_Run357900/Scan%d/HB_pulseshape_2022_13tev_ieta%d.png",laser,ieta));
+      cHB_pulse_4->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_pulseshape_2022_13tev_ieta%d.png",laser,ieta));
   
       //HB_firstADC_byTS
       TCanvas *cHB_firstADC_4 = new TCanvas("c","c",3200,600);
@@ -419,7 +421,7 @@ void HBStudy_relativeScan::Loop()
 	latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
 	
 	gPad->Update();
-	//      cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/HB_firstADC_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
+	//      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_firstADC_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
 	
 	cHB_firstADC_4->cd(it->first);
 	HB_firstADC_byTS[laser][ieta][it->first]->SetTitle("");
@@ -430,7 +432,7 @@ void HBStudy_relativeScan::Loop()
 	gPad->Update();
       }
       latex->DrawLatex(0.5, 0.95, cmsLabel);
-      cHB_firstADC_4->SaveAs(Form("2022_plots_Run357900/Scan%d/HB_firstADC_2022_13tev_ieta%d.png",laser,ieta));
+      cHB_firstADC_4->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_firstADC_2022_13tev_ieta%d.png",laser,ieta));
     
       TCanvas *cHB_peak_4 = new TCanvas("c","c",3200,600);
       cHB_peak_4->Divide(4,1,0.01,0.01);
@@ -450,7 +452,7 @@ void HBStudy_relativeScan::Loop()
 	latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
 	
 	gPad->Update();
-	//      cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/HB_peak_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
+	//      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_peak_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
 	
 	cHB_peak_4->cd(it->first);
 	HB_peak_byTS[laser][ieta][it->first]->SetTitle("");
@@ -461,7 +463,7 @@ void HBStudy_relativeScan::Loop()
 	gPad->Update();
       }
       latex->DrawLatex(0.5, 0.95, cmsLabel);
-      cHB_peak_4->SaveAs(Form("2022_plots_Run357900/Scan%d/HB_peak_2022_13tev_ieta%d.png",laser,ieta));
+      cHB_peak_4->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_peak_2022_13tev_ieta%d.png",laser,ieta));
       
       TCanvas *cHB_validTDC_4 = new TCanvas("c","c",3200,600);
       cHB_validTDC_4->Divide(4,1,0.01,0.01);
@@ -480,7 +482,7 @@ void HBStudy_relativeScan::Loop()
 	latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
 	
 	gPad->Update();
-	//      cHB_pulse_shape->SaveAs(Form("2022_plots_Run357900/HB_validTDC_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
+	//      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_validTDC_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
 	
 	cHB_validTDC_4->cd(it->first);
 	HB_validTDC_byTS[laser][ieta][it->first]->SetTitle("");
@@ -491,7 +493,7 @@ void HBStudy_relativeScan::Loop()
 	gPad->Update();
       }
       latex->DrawLatex(0.5, 0.95, cmsLabel);
-      cHB_validTDC_4->SaveAs(Form("2022_plots_Run357900/Scan%d/HB_validTDC_2022_13tev_ieta%d.png",laser,ieta));
+      cHB_validTDC_4->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_validTDC_2022_13tev_ieta%d.png",laser,ieta));
     } // ieta HB loop
     
     // QIE 11 digi
@@ -512,7 +514,7 @@ void HBStudy_relativeScan::Loop()
       latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d}",it->first));
       
       gPad->Update();
-      cHB_promptFB->SaveAs(Form("2022_plots_Run357900/Scan%d/TPenergy_by_TS_2022_13tev_ieta%d.png",laser,it->first));
+      cHB_promptFB->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/TPenergy_by_TS_2022_13tev_ieta%d.png",laser,it->first));
     }
     
     // HB fine grain bits
@@ -529,7 +531,7 @@ void HBStudy_relativeScan::Loop()
       latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{i#eta=%d}",it->first));
 
       gPad->Update();
-      cHB_promptFB->SaveAs(Form("2022_plots_Run357900/Scan%d/FB1_by_TS_2022_13tev_ieta%d.png",laser,it->first));
+      cHB_promptFB->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/FB1_by_TS_2022_13tev_ieta%d.png",laser,it->first));
     }
     
     for (std::map<int,TH1F*>::iterator it = FB2_by_TS[laser].begin() ; it != FB2_by_TS[laser].end(); it++) { // it->first is ieta, it->second is FB2_by_TS
@@ -545,7 +547,7 @@ void HBStudy_relativeScan::Loop()
       latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{i#eta=%d}",it->first));
       
       gPad->Update();
-      cHB_promptFB->SaveAs(Form("2022_plots_Run357900/Scan%d/FB2_by_TS_2022_13tev_ieta%d.png",laser,it->first));
+      cHB_promptFB->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/FB2_by_TS_2022_13tev_ieta%d.png",laser,it->first));
     }
     
     for (std::map<int,TH1F*>::iterator it = FB3_by_TS[laser].begin() ; it != FB3_by_TS[laser].end(); it++) { // it->first is ieta, it->second is FB3_by_TS
@@ -561,7 +563,7 @@ void HBStudy_relativeScan::Loop()
       latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{i#eta=%d}",it->first));
       
       gPad->Update();
-      cHB_promptFB->SaveAs(Form("2022_plots_Run357900/Scan%d/FB3_by_TS_2022_13tev_ieta%d.png",laser,it->first));
+      cHB_promptFB->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/FB3_by_TS_2022_13tev_ieta%d.png",laser,it->first));
     } // laser type
   }
 }

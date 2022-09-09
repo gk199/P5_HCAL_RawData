@@ -156,6 +156,7 @@ void HBStudy_plotByQIE::Loop()
 	for (int TDC = 0; TDC < 3; TDC++) {
 	  if (HB_TDC_byScan[TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan[TDC][ch_ieta].end()) HB_TDC_byScan[TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_%dTDC_byScan_ieta%d_depth%d",TDC,ch_ieta,ch_depth),Form("TDC=%d in HB;QIE Scan Value;Fraction of Events",TDC),11,-2,9);
 	  
+	  // TDC vs QIE delay, only looking at TDC and ADC information from TS3 in QIE11 digis 
 	  if (QIE11DigiADC->at(ch).at(3) > ADCenergy) { // flat ADC cut
 	    if (QIE11DigiTDC->at(ch).at(3) == TDC) HB_TDC_byScan[TDC][ch_ieta][ch_depth]->Fill(laserType,1);
 	  }
