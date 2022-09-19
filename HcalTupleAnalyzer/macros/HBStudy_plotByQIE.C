@@ -54,8 +54,8 @@ void HBStudy_plotByQIE::Loop()
   
   // QIE11 digi
   std::map<int, std::map<int, std::map<int, TH1F*>>> HB_TDC_byScan;
-  std::map<int, std::map<int, TH1F*>> HB_delay1TDC_byTS;
-  std::map<int, std::map<int, TH1F*>> HB_delay2TDC_byTS;
+  std::map<int, std::map<int, std::map<int, TH1F*>>> HB_TDC_byScan_effs;
+  std::map<int, std::map<int, TH1F*>> HB_cell_valid;
 
   // TP digi
   std::map<int, TH1F*> FB1_by_TS; // ieta
@@ -70,6 +70,23 @@ void HBStudy_plotByQIE::Loop()
 
   const int ADCenergy = 36; // about 3 GeV 
   const int FCenergy = 4800; // about 3 GeV 
+
+  int ADC_4GeV[16][4] = {{55, 73, 81, 84},
+			 {57, 76, 81, 83},
+			 {55, 79, 83, 86},
+			 {54, 81, 81, 86},
+			 {54, 82, 85, 87},
+			 {57, 80, 90, 90},
+			 {58, 86, 85, 90},
+			 {64, 86, 87, 91},
+			 {64, 84, 91, 96},
+			 {69, 90, 95, 97},
+			 {72, 92, 93, 96},
+			 {68, 94, 96, 103},
+			 {72, 93, 102, 107},
+			 {70, 100, 103, 110},
+			 {84, 101, 105, 114},
+			 {71, 103, 114, -999}}; // ieta, depth
 
   std::vector<int> laserList;
 
@@ -139,7 +156,7 @@ void HBStudy_plotByQIE::Loop()
 	if (fg1 == 1) FB1_by_TS[TPieta]->Fill(laserType,1);
 	if (fg2 == 1) FB2_by_TS[TPieta]->Fill(laserType,1);
 	if (fg3 == 1) FB3_by_TS[TPieta]->Fill(laserType,1);
-	if (totalEnergy > 3) Tower_valid[TPieta]->Fill(laserType,1); // is total energy in GeV? this is compressed ET...not sure if linearized or not yet. might make more sense to require >3 gev to have a realistic energy threshold on the tower
+	if (totalEnergy > 4) Tower_valid[TPieta]->Fill(laserType,1); // is total energy in GeV? this is compressed ET, so already linearized or not yet. might make more sense to require >4 gev to have a realistic energy threshold on the tower
 
 	//	} // end TS loop
       } // end HB loop
@@ -152,14 +169,19 @@ void HBStudy_plotByQIE::Loop()
       
       if (abs(ch_ieta) <= 16) {
 	if (abs(ch_ieta) == 16 && QIE11DigiDepth->at(ch) == 4) continue;
-	
-	for (int TDC = 0; TDC < 3; TDC++) {
-	  if (HB_TDC_byScan[TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan[TDC][ch_ieta].end()) HB_TDC_byScan[TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_%dTDC_byScan_ieta%d_depth%d",TDC,ch_ieta,ch_depth),Form("TDC=%d in HB;QIE Scan Value;Fraction of Events",TDC),11,-2,9);
+
+	if (HB_cell_valid[ch_ieta].find(ch_depth) == HB_cell_valid[ch_ieta].end()) HB_cell_valid[ch_ieta][ch_depth] = new TH1F(Form("HB_cell_valid_ieta%d_depth%d",ch_ieta,ch_depth),"Valid cell;QIE Relative Shift (ns);Fraction of Events",11,-2,9);	
+
+	if (QIE11DigiADC->at(ch).at(3) > ADC_4GeV[abs(ch_ieta) - 1][ch_depth - 1]) 
+	  HB_cell_valid[ch_ieta][ch_depth]->Fill(laserType,1); // just fill if cell > 4 GeV
+
+	for (int TDC = 0; TDC < 4; TDC++) {
+	  if (HB_TDC_byScan[TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan[TDC][ch_ieta].end()) HB_TDC_byScan[TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_%dTDC_byScan_ieta%d_depth%d",TDC,ch_ieta,ch_depth),Form("TDC=%d;QIE Relative Shift (ns);Fraction of Events",TDC),11,-2,9);
+	  if (HB_TDC_byScan_effs[TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan_effs[TDC][ch_ieta].end()) HB_TDC_byScan_effs[TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_%dTDC_byScan_effs_ieta%d_depth%d",TDC,ch_ieta,ch_depth),Form("TDC=%d;QIE Relative Shift (ns);Fraction of Events",TDC),11,-2,9);
 	  
 	  // TDC vs QIE delay, only looking at TDC and ADC information from TS3 in QIE11 digis 
-	  if (QIE11DigiADC->at(ch).at(3) > ADCenergy) { // flat ADC cut
+	  if (QIE11DigiADC->at(ch).at(3) > ADC_4GeV[abs(ch_ieta) - 1][ch_depth - 1]) // flat ADC cut
 	    if (QIE11DigiTDC->at(ch).at(3) == TDC) HB_TDC_byScan[TDC][ch_ieta][ch_depth]->Fill(laserType,1);
-	  }
 	} // end TDC loop
       } // end HB loop
     } // end channel loop
@@ -178,17 +200,23 @@ void HBStudy_plotByQIE::Loop()
   //  HB_energy_byTS
   for (int ieta = -16; ieta <= 16; ieta++) {
     if (ieta == 0) continue;
-    for (int TDC = 0; TDC < 3; TDC++) {
+    for (int TDC = 0; TDC < 4; TDC++) {
       
-      TCanvas *cHB_promptTDC_4 = new TCanvas("c","c",3200,600);
+      TCanvas *cHB_promptTDC_4 = new TCanvas("c","c",3200,600); // reset canvas
       cHB_promptTDC_4->Divide(4,1,0.01,0.01);
       for (std::map<int,TH1F*>::iterator it = HB_TDC_byScan[TDC][ieta].begin() ; it != HB_TDC_byScan[TDC][ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_TDC_byScan[TDC]
 	cHB_pulse_shape = new TCanvas(); // reset canvas
-	HB_TDC_byScan[TDC][ieta][it->first]->Scale(1/HB_TDC_byScan[TDC][ieta][it->first]->Integral());
+	if (TEfficiency::CheckConsistency(*it->second,*HB_cell_valid[ieta][it->first])) {
+	  TEfficiency *effHB = new TEfficiency(*it->second,*HB_cell_valid[ieta][it->first]);
+	  for (int i=0; i<laserList.size(); i++) HB_TDC_byScan_effs[TDC][ieta][it->first]->Fill(laserList[i],effHB->GetEfficiency(laserList[i]+3)); // HB_TDC_byScan_effs is now the efficiencies of each TDC, compared to any cell over 4 GeV
+	}
+
+	HB_TDC_byScan[TDC][ieta][it->first]->Scale(1/HB_TDC_byScan[TDC][ieta][it->first]->Integral()); // this is normalized to the distribution of this TDC value across each TS
 	if (HB_TDC_byScan[TDC][ieta][it->first]->GetEntries() == 0) continue;
 	if (TDC==0) HB_TDC_byScan[TDC][ieta][it->first]->SetFillColor(40);
         if (TDC==1) HB_TDC_byScan[TDC][ieta][it->first]->SetFillColor(38);
         if (TDC==2) HB_TDC_byScan[TDC][ieta][it->first]->SetFillColor(30);
+	if (TDC==3) HB_TDC_byScan[TDC][ieta][it->first]->SetFillColor(45);
 	HB_TDC_byScan[TDC][ieta][it->first]->Draw("bar1");
 	HB_TDC_byScan[TDC][ieta][it->first]->Write();
 	HB_TDC_byScan[TDC][ieta][it->first]->SetMaximum(1);
@@ -207,6 +235,35 @@ void HBStudy_plotByQIE::Loop()
       latex->DrawLatex(0.5, 0.95, cmsLabel);
       cHB_promptTDC_4->SaveAs(Form("2022_plots_relativeScan_Aug/ScanOffset/HB_%dTDC_by_scanOffset_2022_13tev_ieta%d.png",TDC,ieta));
     } // TDC loop
+
+    TCanvas *cHB_stackedTDC = new TCanvas("c","c",3200,600);
+    cHB_stackedTDC->Divide(4,1,0.01,0.01);
+    //    THStack *hstack = new THStack("hstack","Efficiencies;QIE Relative Shift (ns);Fraction of each TDC code present");
+
+    for (std::map<int,TH1F*>::iterator it = HB_TDC_byScan_effs[0][ieta].begin() ; it != HB_TDC_byScan_effs[0][ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_TDC_byScan[TDC]
+      THStack *hstack = new THStack("hstack",";QIE Relative Shift (ns);Fraction of each TDC code present");
+      for (int TDC = 0; TDC < 4; TDC ++) {
+	if (TDC==0) HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillColor(40);
+	if (TDC==1) HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillColor(38);
+	if (TDC==2) HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillColor(30);
+	if (TDC==3) HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillColor(45);
+	HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillStyle(1001);
+	HB_TDC_byScan_effs[TDC][ieta][it->first]->SetTitle(Form("TDC=%d",TDC));
+	hstack->Add(HB_TDC_byScan_effs[TDC][ieta][it->first]);
+      }
+      cHB_stackedTDC->cd(it->first);
+      hstack->Draw("bar1");
+      gPad->BuildLegend(0.75,0.72,0.95,0.92,"");
+
+      latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{depth=%d}",it->first));
+      if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{TDC Efficiencies in HB, i#eta=%d}",ieta));
+      hstack->GetXaxis()->SetTitle("Relative QIE Offset (ns)");
+      hstack->GetYaxis()->SetTitle("Fraction of towers with TDC code");
+      gStyle->SetOptStat(0);
+      gPad->Update();
+    }
+    latex->DrawLatex(0.5, 0.95, cmsLabel);
+    cHB_stackedTDC->SaveAs(Form("2022_plots_relativeScan_Aug/ScanOffset/TDC_by_ScanOffset_2022_13tev_ieta%d.png",ieta));
   } // ieta HB loop
     
   // QIE 11 digi
