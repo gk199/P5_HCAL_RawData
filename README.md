@@ -35,6 +35,16 @@ Note that the laserType 999 should be ignored - this is used to mark a time when
 
 For the QIE phase scan, the uMNio has the phase delay shift values written, as 0, 4, etc. I assume this means +0ns, +2ns, etc, in 1/2 ns steps. Scan should go from -2, 0 (?), 2, 4, 6, 8ns. 
 
+### HCAL Ntuple Maker
+PFG ntuples are created following the [HCAL tuple maker](https://gitlab.cern.ch/cmshcal/hcalpfg/HcalTupleMaker/-/tree/PFG-CMSSW_12_3_X/) in `/afs/cern.ch/work/g/gkopp/MWGR/13TeV/CMSSW_12_4_3/src/HCALPFG/HcalTupleMaker/test`. Instead of the HCAL tuple maker instructions of `cmsrel CMSSW_12_3_0`  I use the more recent `cmsrel CMSSW_12_4_3`, and follow the instructions through the "to build" step.
+
+Edit `test/pfg_Global_RAW_cfg_addTP.py` and `plugins/HcalTupleMaker_QIE11Digis.cc`, which can be copied from [github for 13.6 collisions](https://github.com/gk199/P5_HCAL_RawData/tree/13tev_nominalScan). In HcalTupleMaker, check that `storelaser(true)`  is set, and `lasertype(new int(cumnio->valueUserWord(1)))` is used.
+
+```
+cmsRun pfg_Global_RAW_cfg_addTP.py
+```
+this outputs a HCAL ntuple that can be analyzed in the Analyzer code. Ntuples saved in: `/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_QIEphasescan_relNominal_run356815`.
+
 ## Analysis
 For HB HE timing, all the needed data is saved in the QIE11 branches. I started this code from scratch, using the outline provided after running:
 ```

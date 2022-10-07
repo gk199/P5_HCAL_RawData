@@ -75,8 +75,25 @@ void HBStudy_relativeScan::Loop()
   std::map<int, std::map<int,TH1F*>> FB3_by_TS;
   std::map<int, std::map<int,TH1F*>> CompressedET_by_TS;
 
-  const int ADCenergy = 36; // about 3 GeV 
+  const int ADCenergy = 4; //36; // about 3 GeV. but this is unlinearized ADC! Need 4 GeV approximation instead
   const int FCenergy = 4800; // about 3 GeV 
+
+  int ADC_4GeV[16][4] = {{55, 73, 81, 84},
+                         {57, 76, 81, 83},
+                         {55, 79, 83, 86},
+                         {54, 81, 81, 86},
+                         {54, 82, 85, 87},
+                         {57, 80, 90, 90},
+                         {58, 86, 85, 90},
+                         {64, 86, 87, 91},
+                         {64, 84, 91, 96},
+                         {69, 90, 95, 97},
+                         {72, 92, 93, 96},
+                         {68, 94, 96, 103},
+                         {72, 93, 102, 107},
+                         {70, 100, 103, 110},
+                         {84, 101, 105, 114},
+                         {71, 103, 114, -999}}; // ieta, depth
 
   std::vector<int> laserList;
 
@@ -108,7 +125,8 @@ void HBStudy_relativeScan::Loop()
 	int QIE_TDC0_TS = -1;
 	for (int QIE_TS = 0; QIE_TS < 8; QIE_TS++) {
 	  // find first TS where TDC = 0
-	  // if (ch_ieta >=9 && ch_ieta <= 12 && QIE11DigiTDC->at(ch).at(QIE_TS) != 3) std::cout << QIE_TS << " = TS where QIE digi TDC = " << QIE11DigiTDC->at(ch).at(QIE_TS) << " at ieta, iphi = " << ch_ieta << ", " << ch_iphi << "                                           for event number = " << jentry << std::endl;
+	  // if (ch_ieta >=9 && ch_ieta <= 12 && 
+	  //	  if (QIE11DigiTDC->at(ch).at(QIE_TS) < 3) std::cout << QIE_TS << " = TS where QIE digi TDC = " << QIE11DigiTDC->at(ch).at(QIE_TS) << " at ieta, iphi, (depth) = " << ch_ieta << ", " << ch_iphi << ", (" << ch_depth << ")                                           for event number = " << jentry << std::endl;
 	  if (QIE11DigiTDC->at(ch).at(QIE_TS) == 0 && QIE_TDC0_TS == -1) {
 	    QIE_TDC0_TS = QIE_TS;
 	    //	    std::cout << QIE_TDC0_TS << " = TS where QIE digi TDC=0 at ieta, iphi = " << ch_ieta << ", " << ch_iphi << "                                 for event number = " << jentry << std::endl;
@@ -141,16 +159,17 @@ void HBStudy_relativeScan::Loop()
 	  int fg4 = HcalTriggerPrimitiveFineGrain4->at(ch).at(TS);
 	  int fg5 = HcalTriggerPrimitiveFineGrain5->at(ch).at(TS);
 
-	  if (HcalTriggerPrimitivePresamples->at(ch) != 2 ) std::cout << "HcalTriggerPrimitivePresamples = " << HcalTriggerPrimitivePresamples->at(ch) << " at ieta, iphi = " << TPieta << ", " << TPiphi << std::endl;
+	  //	  if (HcalTriggerPrimitivePresamples->at(ch) != 2 ) std::cout << "HcalTriggerPrimitivePresamples = " << HcalTriggerPrimitivePresamples->at(ch) << " at ieta, iphi = " << TPieta << ", " << TPiphi << std::endl;
 	    
 	  if (fg1 == 1) FB1_by_TS[laserType][TPieta]->Fill(TS,1);
           if (fg2 == 1) FB2_by_TS[laserType][TPieta]->Fill(TS,1);
           if (fg3 == 1) FB3_by_TS[laserType][TPieta]->Fill(TS,1);
-	  //	  if ((TPieta >= 9 || TPieta <= 12) && (fg1 + fg2 + fg3 > 0)) std::cout << "fg1, fg2, fg3 = " << fg1 << ", " << fg2 << ", " << fg3 << " at ieta, iphi = " << TPieta << ", " << TPiphi << "                for event number = " << jentry << std::endl;
-	  if (fg1 == 1) { // && (TPieta < 9 || TPieta > 12)) {
-	    //	    std::cout << TS << " = TS where TP fine grain bit 1 (prompt) set at ieta, iphi = " << TPieta << ", " << TPiphi << "                for event number = " << jentry << std::endl;
-	    //	    std::cout << HcalTriggerPrimitiveCompressedEt->at(ch).at(0) << ", " << HcalTriggerPrimitiveCompressedEt->at(ch).at(1) << ", " << HcalTriggerPrimitiveCompressedEt->at(ch).at(2) << ", " << HcalTriggerPrimitiveCompressedEt->at(ch).at(3) << " TP compressed ET for TS = 0,1,2,3" << std::endl;
-	  }
+	  /*	  if ((TPieta >= 9 || TPieta <= 12) && 
+	  	  if ((fg1 + fg2 + fg3 > 0)) std::cout << "fg1, fg2, fg3 = " << fg1 << ", " << fg2 << ", " << fg3 << " at ieta, iphi = " << TPieta << ", " << TPiphi << "                for event number = " << jentry << std::endl;
+	  	  if (fg1 == 1) { // && (TPieta < 9 || TPieta > 12)) {
+	    	    std::cout << TS << " = TS where TP fine grain bit 1 (prompt) set at ieta, iphi = " << TPieta << ", " << TPiphi << "                for event number = " << jentry << std::endl;
+	    	    std::cout << HcalTriggerPrimitiveCompressedEt->at(ch).at(0) << ", " << HcalTriggerPrimitiveCompressedEt->at(ch).at(1) << ", " << HcalTriggerPrimitiveCompressedEt->at(ch).at(2) << ", " << HcalTriggerPrimitiveCompressedEt->at(ch).at(3) << " TP compressed ET for TS = 0,1,2,3" << std::endl;
+		    } */
 	} // end TS loop
 	for (int TS = 0; TS < 4; TS++) {
 	  if (totalEnergy > 0) {
@@ -177,7 +196,7 @@ void HBStudy_relativeScan::Loop()
 	if (HB_SOIratio_normalization[laserType].find(ch_depth) == HB_SOIratio_normalization[laserType].end()) HB_SOIratio_normalization[laserType][ch_depth] = new TH1F(Form("HB_SOIratio_normalization_depth%d_scan%d",ch_depth,laserType),Form("SOI/SOI+1 ratio_normalization in HB by i#eta for depth=%d, scan=%d ns;HB i#eta;#frac{SOI}{SOI+1} Ratio Normalization",ch_depth,laserType),33,-16,17);
 	if (HB_SOIminus[laserType].find(ch_depth) == HB_SOIminus[laserType].end()) HB_SOIminus[laserType][ch_depth] = new TH1F(Form("HB_SOIminus[laserType]_depth%d_scan%d",ch_depth,laserType),Form("SOI-1 energy fraction in HB by i#eta for depth=%d, scan=%d ns;HB i#eta;Fraction of energy in SOI-1",ch_depth,laserType),33,-16,17);
 	if (HB_SOIminusADC[laserType].find(ch_depth) == HB_SOIminusADC[laserType].end()) HB_SOIminusADC[laserType][ch_depth] = new TH1F(Form("HB_SOIminusADC_depth%d_scan%d",ch_depth,laserType),Form("SOI-1 ADC in HB by i#eta for depth=%d, scan=%d ns;HB i#eta;ADC in SOI-1",ch_depth,laserType),33,-16,17);
-	if (HB_SOIminus36[laserType].find(ch_depth) == HB_SOIminus36[laserType].end()) HB_SOIminus36[laserType][ch_depth] = new TH1F(Form("HB_SOIminus36_depth%d_scan%d",ch_depth,laserType),Form("Percent of SOI-1 with ADC>%d by i#eta for depth=%d, scan=%d ns;HB i#eta;Percent over ADC=%d",ADCenergy,ch_depth,laserType,ADCenergy),33,-16,17);
+	if (HB_SOIminus36[laserType].find(ch_depth) == HB_SOIminus36[laserType].end()) HB_SOIminus36[laserType][ch_depth] = new TH1F(Form("HB_SOIminus36_depth%d_scan%d",ch_depth,laserType),Form("Percent of SOI-1 with ADC>%dGeV by i#eta for depth=%d, scan=%d ns;HB i#eta;Percent over ADC=%dGeV",ADCenergy,ch_depth,laserType,ADCenergy),33,-16,17);
 	if (HB_SOIminus_normalization[laserType].find(ch_depth) == HB_SOIminus_normalization[laserType].end()) HB_SOIminus_normalization[laserType][ch_depth] = new TH1F(Form("HB_SOIminus_normalization_depth%d_scan%d",ch_depth,laserType),Form("SOI-1 normalization in HB by i#eta for depth=%d, scan=%d ns;HB i#eta;SOI-1  Normalization",ch_depth,laserType),33,-16,17);
 
 	float totalEnergy = 0;
@@ -212,7 +231,7 @@ void HBStudy_relativeScan::Loop()
 	    //	    std::cout << "TDC values = " << QIE11DigiTDC->at(ch).at(0) << ", " << QIE11DigiTDC->at(ch).at(1)  << ", " << QIE11DigiTDC->at(ch).at(2) << ", " << QIE11DigiTDC->at(ch).at(3) << ", " << QIE11DigiTDC->at(ch).at(4) << ", " << QIE11DigiTDC->at(ch).at(5) << ", " << QIE11DigiTDC->at(ch).at(6) << ", " << QIE11DigiTDC->at(ch).at(7) << " and energy values for all TS are = " << QIE11DigiADC->at(ch).at(0) << ", " << QIE11DigiADC->at(ch).at(1) << ", " << QIE11DigiADC->at(ch).at(2) << ", " << QIE11DigiADC->at(ch).at(3) << ", " << QIE11DigiADC->at(ch).at(4) << ", " << QIE11DigiADC->at(ch).at(5) << ", " << QIE11DigiADC->at(ch).at(6) << ", " << QIE11DigiADC->at(ch).at(7) << " and ieta, depth = " << ch_ieta << ", " << ch_depth << std::endl;
 	  }
 
-	  if (QIE11DigiADC->at(ch).at(TS) > ADCenergy) { // flat ADC cut
+	  if (QIE11DigiADC->at(ch).at(TS) > ADC_4GeV[abs(ch_ieta)-1][ch_depth-1]) { //ADCenergy) { // flat ADC cut
 	    oneTShigh = 1; // if any of the TS are above the energy threshold
 	    if (ADCfirstTS == -1) {
 	      ADCfirstTS = TS;
@@ -242,7 +261,7 @@ void HBStudy_relativeScan::Loop()
 	  HB_SOIratio_normalization[laserType][ch_depth]->Fill(ch_ieta, 1);
 	  HB_SOIminus[laserType][ch_depth]->Fill(ch_ieta, SOIminus_energy / totalEnergy);
           HB_SOIminusADC[laserType][ch_depth]->Fill(ch_ieta, SOIminus_energy);
-	  if (SOIminus_energy >= 36) HB_SOIminus36[laserType][ch_depth]->Fill(ch_ieta, 1); // fill if SOI-1 energy is over TDC threshold (ADC=36)
+	  if (SOIminus_energy >= ADC_4GeV[abs(ch_ieta)-1][ch_depth-1]) HB_SOIminus36[laserType][ch_depth]->Fill(ch_ieta, 1); // fill if SOI-1 energy is over TDC threshold (ADC=36). Used to be >= 36
           HB_SOIminus_normalization[laserType][ch_depth]->Fill(ch_ieta, 1);
 
 	  for (int TS = 0; TS < 8; TS++) {
@@ -279,7 +298,7 @@ void HBStudy_relativeScan::Loop()
       
       latex->DrawLatex(0.12, 0.85, cmsLabel);
       latex->DrawLatex(commentaryXpos-0.45, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
-      latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+      latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%dGeV in one TS}",ADCenergy));
       
       gPad->Update();
       cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_SOIratio_2022_13tev_depth%d.png",laser,it->first));
@@ -298,7 +317,7 @@ void HBStudy_relativeScan::Loop()
 
       latex->DrawLatex(0.12, 0.85, cmsLabel);
       latex->DrawLatex(commentaryXpos-0.45, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
-      latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+      latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%dGeV in one TS}",ADCenergy));
       
       gPad->Update();
       cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_SOIminus_2022_13tev_depth%d.png",laser,it->first));
@@ -308,14 +327,14 @@ void HBStudy_relativeScan::Loop()
       cHB_pulse_shape = new TCanvas(); // reset canvas
       HB_SOIminusADC[laser][it->first]->Divide(HB_SOIminus_normalization[laser][it->first]); // divide HB_SOIminusADC by HB_SOIminus_normalization
       HB_SOIminusADC[laser][it->first]->SetFillColor(45);
-      HB_SOIminusADC[laser][it->first]->SetMaximum(25.);
+      HB_SOIminusADC[laser][it->first]->SetMaximum(100.); // 25 for initial plots with ADC > 36
       HB_SOIminusADC[laser][it->first]->SetMinimum(0.);
       HB_SOIminusADC[laser][it->first]->Draw("bar1");
       HB_SOIminusADC[laser][it->first]->Write();
       
       latex->DrawLatex(0.12, 0.85, cmsLabel);
       latex->DrawLatex(commentaryXpos-0.45, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
-      latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+      latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%dGeV in one TS}",ADCenergy));
       
       gPad->Update();
       cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_SOIminusADC_2022_13tev_depth%d.png",laser,it->first));
@@ -333,7 +352,7 @@ void HBStudy_relativeScan::Loop()
       
       latex->DrawLatex(0.12, 0.85, cmsLabel);
       latex->DrawLatex(commentaryXpos-0.45, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
-      latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+      latex->DrawLatex(commentaryXpos-0.45, 0.7, Form("#scale[0.8]{with ADC>%dGeV in one TS}",ADCenergy));
       
       gPad->Update();
       cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/Scan%d/HB_SOIminus36_2022_13tev_depth%d.png",laser,it->first));
@@ -386,7 +405,7 @@ void HBStudy_relativeScan::Loop()
 	latex->DrawLatex(0.12, 0.85, cmsLabel);
 	
 	latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
-	latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+	latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%dGeV in one TS}",ADCenergy));
 	
 	gPad->Update();
 	//      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_pulseshape_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
@@ -418,7 +437,7 @@ void HBStudy_relativeScan::Loop()
 	latex->DrawLatex(0.12, 0.85, cmsLabel);
 	
 	latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
-	latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+	latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%dGeV in one TS}",ADCenergy));
 	
 	gPad->Update();
 	//      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_firstADC_2022_13tev_ieta%d_depth%d.png",ieta,it->first));
@@ -449,7 +468,7 @@ void HBStudy_relativeScan::Loop()
 	latex->DrawLatex(0.12, 0.85, cmsLabel);
 	
 	latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
-	latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%d in one TS}",ADCenergy));
+	latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%dGeV in one TS}",ADCenergy));
 	
 	gPad->Update();
 	//      cHB_pulse_shape->SaveAs(Form("2022_plots_relativeScan_Aug/HB_peak_2022_13tev_ieta%d_depth%d.png",ieta,it->first));

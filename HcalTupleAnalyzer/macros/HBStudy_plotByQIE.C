@@ -53,8 +53,8 @@ void HBStudy_plotByQIE::Loop()
   Long64_t nentries = fChain->GetEntriesFast();
   
   // QIE11 digi
-  std::map<int, std::map<int, std::map<int, TH1F*>>> HB_TDC_byScan;
-  std::map<int, std::map<int, std::map<int, TH1F*>>> HB_TDC_byScan_effs;
+  std::map<int, std::map<int, std::map<int, std::map<int, TH1F*>>>> HB_TDC_byScan; // TS, TDC, ieta, depth
+  std::map<int, std::map<int, std::map<int, std::map<int, TH1F*>>>> HB_TDC_byScan_effs; // TS, TDC, ieta, depth
   std::map<int, std::map<int, TH1F*>> HB_cell_valid;
 
   // TP digi
@@ -133,6 +133,15 @@ void HBStudy_plotByQIE::Loop()
       int TPiphi = HcalTriggerPrimitiveIPhi->at(ch);
 
       if (TPieta >= 9 && TPieta <= 12 && TPiphi == 53) continue; // skip the towers where ieta is 9-12 and iphi is 53, as this is where fine grain bits are set all over the place, without corresponding TDC
+      if (abs(TPieta) > 16 && abs(TPieta) < 29) {
+	int fg0 = HcalTriggerPrimitiveFineGrain0->at(ch).at(2);
+        int fg1 = HcalTriggerPrimitiveFineGrain1->at(ch).at(2);
+        int fg2 = HcalTriggerPrimitiveFineGrain2->at(ch).at(2);
+        int fg3 = HcalTriggerPrimitiveFineGrain3->at(ch).at(2);
+        int fg4 = HcalTriggerPrimitiveFineGrain4->at(ch).at(2);
+        int fg5 = HcalTriggerPrimitiveFineGrain5->at(ch).at(2);
+	if (fg0 + fg1 + fg2 + fg3 > 0) std::cout << "ieta = " << TPieta << " with fine grain bits set at " << fg0 << ", " << fg1 << ", " << fg2 << ", " << fg3 << std::endl;
+      }
 
       if (abs(TPieta) <= 16) {
 	if (FB1_by_TS.find(TPieta) == FB1_by_TS.end()) FB1_by_TS[TPieta] = new TH1F(Form("FB1_byTS_ieta%d",TPieta),Form("Prompt finegrain bit (1) by QIE delay;QIE Relative Shift (ns);Prompt finegrain bits"),11,-2,9);
@@ -153,6 +162,7 @@ void HBStudy_plotByQIE::Loop()
 	int fg4 = HcalTriggerPrimitiveFineGrain4->at(ch).at(TS);
 	int fg5 = HcalTriggerPrimitiveFineGrain5->at(ch).at(TS);
 	  	    
+	if (fg0 || (!fg1 && (fg2 || fg3))) std::cout << "Event " << jentry << ": flagged HCAL TP tower based on FG logic, with TP ieta, iphi " << TPieta << ", " << TPiphi << std::endl;
 	if (fg1 == 1) FB1_by_TS[TPieta]->Fill(laserType,1);
 	if (fg2 == 1) FB2_by_TS[TPieta]->Fill(laserType,1);
 	if (fg3 == 1) FB3_by_TS[TPieta]->Fill(laserType,1);
@@ -163,7 +173,7 @@ void HBStudy_plotByQIE::Loop()
     } // end channel loop
   
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
-      int ch_ieta = QIE11DigiIEta->at(ch);
+      int ch_ieta = abs(QIE11DigiIEta->at(ch));
       int ch_iphi = QIE11DigiIPhi->at(ch);
       int ch_depth = QIE11DigiDepth->at(ch);
       
@@ -173,16 +183,18 @@ void HBStudy_plotByQIE::Loop()
 	if (HB_cell_valid[ch_ieta].find(ch_depth) == HB_cell_valid[ch_ieta].end()) HB_cell_valid[ch_ieta][ch_depth] = new TH1F(Form("HB_cell_valid_ieta%d_depth%d",ch_ieta,ch_depth),"Valid cell;QIE Relative Shift (ns);Fraction of Events",11,-2,9);	
 
 	if (QIE11DigiADC->at(ch).at(3) > ADC_4GeV[abs(ch_ieta) - 1][ch_depth - 1]) 
-	  HB_cell_valid[ch_ieta][ch_depth]->Fill(laserType,1); // just fill if cell > 4 GeV
-
-	for (int TDC = 0; TDC < 4; TDC++) {
-	  if (HB_TDC_byScan[TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan[TDC][ch_ieta].end()) HB_TDC_byScan[TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_%dTDC_byScan_ieta%d_depth%d",TDC,ch_ieta,ch_depth),Form("TDC=%d;QIE Relative Shift (ns);Fraction of Events",TDC),11,-2,9);
-	  if (HB_TDC_byScan_effs[TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan_effs[TDC][ch_ieta].end()) HB_TDC_byScan_effs[TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_%dTDC_byScan_effs_ieta%d_depth%d",TDC,ch_ieta,ch_depth),Form("TDC=%d;QIE Relative Shift (ns);Fraction of Events",TDC),11,-2,9);
-	  
-	  // TDC vs QIE delay, only looking at TDC and ADC information from TS3 in QIE11 digis 
-	  if (QIE11DigiADC->at(ch).at(3) > ADC_4GeV[abs(ch_ieta) - 1][ch_depth - 1]) // flat ADC cut
-	    if (QIE11DigiTDC->at(ch).at(3) == TDC) HB_TDC_byScan[TDC][ch_ieta][ch_depth]->Fill(laserType,1);
-	} // end TDC loop
+	  HB_cell_valid[ch_ieta][ch_depth]->Fill(laserType,1); // just fill if cell > 4 GeV (in SOI)
+	
+	for (int TS = 2; TS < 4; TS++) {
+	  for (int TDC = 0; TDC < 4; TDC++) {
+	    if (HB_TDC_byScan[TS][TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan[TS][TDC][ch_ieta].end()) HB_TDC_byScan[TS][TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_TS%d_%dTDC_byScan_ieta%d_depth%d",TS,TDC,ch_ieta,ch_depth),Form("TDC=%d (TS=%d);QIE Relative Shift (ns);Fraction of Events",TDC,TS),11,-2,9);
+	    if (HB_TDC_byScan_effs[TS][TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan_effs[TS][TDC][ch_ieta].end()) HB_TDC_byScan_effs[TS][TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_TS%d_%dTDC_byScan_effs_ieta%d_depth%d",TS,TDC,ch_ieta,ch_depth),Form("TDC=%d (TS=%d);QIE Relative Shift (ns);Fraction of Events",TDC,TS),11,-2,9);
+	    
+	    // TDC vs QIE delay, only looking at TDC and ADC information from TS3 in QIE11 digis 
+	    if (QIE11DigiADC->at(ch).at(3) > ADC_4GeV[abs(ch_ieta) - 1][ch_depth - 1]) // flat ADC cut
+	      if (QIE11DigiTDC->at(ch).at(TS) == TDC) HB_TDC_byScan[TS][TDC][ch_ieta][ch_depth]->Fill(laserType,1);
+	  } // end TDC loop
+	} // end TS loop (2,3,4)
       } // end HB loop
     } // end channel loop
   }
@@ -198,72 +210,79 @@ void HBStudy_plotByQIE::Loop()
   TCanvas *cHB_pulse_shape;
 
   //  HB_energy_byTS
-  for (int ieta = -16; ieta <= 16; ieta++) {
+  //  for (int ieta = -16; ieta <= 16; ieta++) {
+  for (int ieta = 1; ieta <= 16; ieta++) { // to combine plots by ieta, use this and above "int ch_ieta = abs(QIE11DigiIEta->at(ch));" for the QIE11 channels
     if (ieta == 0) continue;
-    for (int TDC = 0; TDC < 4; TDC++) {
-      
-      TCanvas *cHB_promptTDC_4 = new TCanvas("c","c",3200,600); // reset canvas
-      cHB_promptTDC_4->Divide(4,1,0.01,0.01);
-      for (std::map<int,TH1F*>::iterator it = HB_TDC_byScan[TDC][ieta].begin() ; it != HB_TDC_byScan[TDC][ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_TDC_byScan[TDC]
-	cHB_pulse_shape = new TCanvas(); // reset canvas
-	if (TEfficiency::CheckConsistency(*it->second,*HB_cell_valid[ieta][it->first])) {
-	  TEfficiency *effHB = new TEfficiency(*it->second,*HB_cell_valid[ieta][it->first]);
-	  for (int i=0; i<laserList.size(); i++) HB_TDC_byScan_effs[TDC][ieta][it->first]->Fill(laserList[i],effHB->GetEfficiency(laserList[i]+3)); // HB_TDC_byScan_effs is now the efficiencies of each TDC, compared to any cell over 4 GeV
-	}
 
-	HB_TDC_byScan[TDC][ieta][it->first]->Scale(1/HB_TDC_byScan[TDC][ieta][it->first]->Integral()); // this is normalized to the distribution of this TDC value across each TS
-	if (HB_TDC_byScan[TDC][ieta][it->first]->GetEntries() == 0) continue;
-	if (TDC==0) HB_TDC_byScan[TDC][ieta][it->first]->SetFillColor(40);
-        if (TDC==1) HB_TDC_byScan[TDC][ieta][it->first]->SetFillColor(38);
-        if (TDC==2) HB_TDC_byScan[TDC][ieta][it->first]->SetFillColor(30);
-	if (TDC==3) HB_TDC_byScan[TDC][ieta][it->first]->SetFillColor(45);
-	HB_TDC_byScan[TDC][ieta][it->first]->Draw("bar1");
-	HB_TDC_byScan[TDC][ieta][it->first]->Write();
-	HB_TDC_byScan[TDC][ieta][it->first]->SetMaximum(1);
-	HB_TDC_byScan[TDC][ieta][it->first]->SetMinimum(0.);
-	latex->DrawLatex(0.12, 0.85, cmsLabel);
-	latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
-	gPad->Update();
-	cHB_promptTDC_4->cd(it->first);
-	HB_TDC_byScan[TDC][ieta][it->first]->SetTitle("");
-	HB_TDC_byScan[TDC][ieta][it->first]->Draw("bar1");
-	HB_TDC_byScan[TDC][ieta][it->first]->Write();
-	latex->DrawLatex(depthXpos, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
-	if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{TDC=%d in HB, for i#eta=%d}",TDC,ieta));
+    for (int depth = 1; depth <= 4; depth ++) {
+      if (ieta == 16 && depth == 4) continue;
+      for (int i=0; i<laserList.size(); i++) std::cout << "HB_cell_valid for ieta = " << ieta << ", depth = " << depth << ", and for QIE delay setting of " << laserList[i] << " is = " << HB_cell_valid[ieta][depth]->GetBinContent(laserList[i]+3) << std::endl;
+    }
+
+    for (int TS = 2; TS < 4; TS++) {
+      for (int TDC = 0; TDC < 4; TDC++) {
+      
+	TCanvas *cHB_promptTDC_4 = new TCanvas("c","c",3200,600); // reset canvas
+	cHB_promptTDC_4->Divide(4,1,0.01,0.01);
+	for (std::map<int,TH1F*>::iterator it = HB_TDC_byScan[TS][TDC][ieta].begin() ; it != HB_TDC_byScan[TS][TDC][ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_TDC_byScan[TDC]
+	  cHB_pulse_shape = new TCanvas(); // reset canvas
+	  if (TEfficiency::CheckConsistency(*it->second,*HB_cell_valid[ieta][it->first])) {
+	    TEfficiency *effHB = new TEfficiency(*it->second,*HB_cell_valid[ieta][it->first]);
+	    for (int i=0; i<laserList.size(); i++) HB_TDC_byScan_effs[TS][TDC][ieta][it->first]->Fill(laserList[i],effHB->GetEfficiency(laserList[i]+3)); // HB_TDC_byScan_effs is now the efficiencies of each TDC, compared to any cell over 4 GeV
+	  }
+	  
+	  HB_TDC_byScan[TS][TDC][ieta][it->first]->Scale(1/HB_TDC_byScan[TS][TDC][ieta][it->first]->Integral()); // this is normalized to the distribution of this TDC value across each TS
+	  if (HB_TDC_byScan[TS][TDC][ieta][it->first]->GetEntries() == 0) continue;
+	  if (TDC==0) HB_TDC_byScan[TS][TDC][ieta][it->first]->SetFillColor(40);
+	  if (TDC==1) HB_TDC_byScan[TS][TDC][ieta][it->first]->SetFillColor(38);
+	  if (TDC==2) HB_TDC_byScan[TS][TDC][ieta][it->first]->SetFillColor(30);
+	  if (TDC==3) HB_TDC_byScan[TS][TDC][ieta][it->first]->SetFillColor(45);
+	  HB_TDC_byScan[TS][TDC][ieta][it->first]->Draw("bar1");
+	  HB_TDC_byScan[TS][TDC][ieta][it->first]->Write();
+	  HB_TDC_byScan[TS][TDC][ieta][it->first]->SetMaximum(1);
+	  HB_TDC_byScan[TS][TDC][ieta][it->first]->SetMinimum(0.);
+	  latex->DrawLatex(0.12, 0.85, cmsLabel);
+	  latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
+	  gPad->Update();
+	  cHB_promptTDC_4->cd(it->first);
+	  HB_TDC_byScan[TS][TDC][ieta][it->first]->SetTitle("");
+	  HB_TDC_byScan[TS][TDC][ieta][it->first]->Draw("bar1");
+	  HB_TDC_byScan[TS][TDC][ieta][it->first]->Write();
+	  latex->DrawLatex(depthXpos, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+	  if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{TDC=%d in HB, for i#eta=%d}",TDC,ieta));
+	  gPad->Update();
+	}
+	latex->DrawLatex(0.5, 0.95, cmsLabel);
+	cHB_promptTDC_4->SaveAs(Form("2022_plots_relativeScan_Aug/ScanOffset/HB_TS%d_%dTDC_by_scanOffset_2022_13tev_ieta%d.png",TS,TDC,ieta));
+      } // TDC loop
+
+      TCanvas *cHB_stackedTDC = new TCanvas("c","c",3200,600);
+      cHB_stackedTDC->Divide(4,1,0.01,0.01);
+      //    THStack *hstack = new THStack("hstack","Efficiencies;QIE Relative Shift (ns);Fraction of each TDC code present");
+      
+      for (std::map<int,TH1F*>::iterator it = HB_TDC_byScan_effs[TS][0][ieta].begin() ; it != HB_TDC_byScan_effs[TS][0][ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_TDC_byScan[TDC]
+	THStack *hstack = new THStack("hstack",";QIE Relative Shift (ns);Fraction of each TDC code present");
+	for (int TDC = 0; TDC < 4; TDC ++) {
+	  if (TDC==0) HB_TDC_byScan_effs[TS][TDC][ieta][it->first]->SetFillColor(40);
+	  if (TDC==1) HB_TDC_byScan_effs[TS][TDC][ieta][it->first]->SetFillColor(38);
+	  if (TDC==2) HB_TDC_byScan_effs[TS][TDC][ieta][it->first]->SetFillColor(30);
+	  if (TDC==3) HB_TDC_byScan_effs[TS][TDC][ieta][it->first]->SetFillColor(45);
+	  HB_TDC_byScan_effs[TS][TDC][ieta][it->first]->SetFillStyle(1001);
+	  HB_TDC_byScan_effs[TS][TDC][ieta][it->first]->SetTitle(Form("TDC=%d",TDC));
+	  hstack->Add(HB_TDC_byScan_effs[TS][TDC][ieta][it->first]);
+	}
+	cHB_stackedTDC->cd(it->first);
+	hstack->Draw("bar1");
+	//      gPad->BuildLegend(0.75,0.72,0.95,0.92,"");
+	
+	latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{depth=%d}",it->first));
+	if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{TDC Efficiencies in HB, TS=%d, i#eta=%d}",TS,ieta));
+	gStyle->SetOptStat(0);
 	gPad->Update();
       }
       latex->DrawLatex(0.5, 0.95, cmsLabel);
-      cHB_promptTDC_4->SaveAs(Form("2022_plots_relativeScan_Aug/ScanOffset/HB_%dTDC_by_scanOffset_2022_13tev_ieta%d.png",TDC,ieta));
-    } // TDC loop
-
-    TCanvas *cHB_stackedTDC = new TCanvas("c","c",3200,600);
-    cHB_stackedTDC->Divide(4,1,0.01,0.01);
-    //    THStack *hstack = new THStack("hstack","Efficiencies;QIE Relative Shift (ns);Fraction of each TDC code present");
-
-    for (std::map<int,TH1F*>::iterator it = HB_TDC_byScan_effs[0][ieta].begin() ; it != HB_TDC_byScan_effs[0][ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_TDC_byScan[TDC]
-      THStack *hstack = new THStack("hstack",";QIE Relative Shift (ns);Fraction of each TDC code present");
-      for (int TDC = 0; TDC < 4; TDC ++) {
-	if (TDC==0) HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillColor(40);
-	if (TDC==1) HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillColor(38);
-	if (TDC==2) HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillColor(30);
-	if (TDC==3) HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillColor(45);
-	HB_TDC_byScan_effs[TDC][ieta][it->first]->SetFillStyle(1001);
-	HB_TDC_byScan_effs[TDC][ieta][it->first]->SetTitle(Form("TDC=%d",TDC));
-	hstack->Add(HB_TDC_byScan_effs[TDC][ieta][it->first]);
-      }
-      cHB_stackedTDC->cd(it->first);
-      hstack->Draw("bar1");
-      gPad->BuildLegend(0.75,0.72,0.95,0.92,"");
-
-      latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{depth=%d}",it->first));
-      if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{TDC Efficiencies in HB, i#eta=%d}",ieta));
-      hstack->GetXaxis()->SetTitle("Relative QIE Offset (ns)");
-      hstack->GetYaxis()->SetTitle("Fraction of towers with TDC code");
-      gStyle->SetOptStat(0);
-      gPad->Update();
-    }
-    latex->DrawLatex(0.5, 0.95, cmsLabel);
-    cHB_stackedTDC->SaveAs(Form("2022_plots_relativeScan_Aug/ScanOffset/TDC_by_ScanOffset_2022_13tev_ieta%d.png",ieta));
+      cHB_stackedTDC->SaveAs(Form("2022_plots_relativeScan_Aug/ScanOffset/TDC_by_ScanOffset_2022_13tev_TS%d_ieta%d.png",TS,ieta));
+    } // TS loop 2,3,4
   } // ieta HB loop
     
   // QIE 11 digi
