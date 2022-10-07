@@ -43,7 +43,7 @@ Edit `test/pfg_Global_RAW_cfg_addTP.py` and `plugins/HcalTupleMaker_QIE11Digis.c
 ```
 cmsRun pfg_Global_RAW_cfg_addTP.py
 ```
-this outputs a HCAL ntuple that can be analyzed in the Analyzer code. Ntuples saved in: `/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_QIEphasescan_relNominal_run356815`.
+this outputs a HCAL ntuple that can be analyzed in the Analyzer code. Ntuples saved in: `/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_QIEphasescan_relNominal_run356815`, and now copied over to hcal_dpg space in `/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_HCALtupleMaker/`, including one file from a nominal phase run.
 
 ## Analysis
 For HB HE timing, all the needed data is saved in the QIE11 branches. I started this code from scratch, using the outline provided after running:
@@ -69,11 +69,19 @@ Followed [root macros tutorial](https://root.cern.ch/root/htmldoc/guides/primer/
 ```
 g++ -o process_events process_events.C `root-config --cflags --libs`
 ./process_events
-
+```
+Specifically for the files in use (first two for initial QIE phase scan for HCAL alignment, second two specific for relative QIE phase scan Aug 2022):
+```
 g++ -o process_events_QIE_TP process_events_QIE_TP.C `root-config --cflags --libs`
 g++ -o process_events_nominalQIE process_events_nominalQIE.C `root-config --cflags --libs`
 
+g++ -o process_events_relativeScan process_events_relativeScan.C `root-config --cflags --libs`
+./process_events_relativeScan
+g++ -o process_events_plotByQIE process_events_plotByQIE.C `root-config --cflags --libs`
+./process_events_plotByQIE
 ```
+plotByQIE does the TDC and FG bit distributions vs QIE delay for timing alignment. relativeScan does the SOI energy ratios (and is set up to do these for the QIE phase scan as well to evaluate changes relative to phase setting). 
+
 If running interactively, this would be via:
 ```
 root -l -b -q process_events.C
