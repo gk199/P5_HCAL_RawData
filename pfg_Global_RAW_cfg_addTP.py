@@ -23,40 +23,34 @@ options.register('processEvents',
                  "Number of events to process")
 
 options.register('inputFiles',
-                  #'root://eoscms.cern.ch//store/group/dpg_hcal/comm_hcal/Commissioning2021/MinimumBias9/RAW/v1/000/346/396/00000/0ea45dbb-ea6c-493c-b13c-c81baa82a675.root',
-#                  'root://eoscms.cern.ch//store/group/dpg_hcal/comm_hcal/Run2022A/MinimumBias/RAW/v1/000/352/417/00000/6fbf784b-de4e-4232-bc23-e93cd45e543f.root', # file listed by Yihui for testing
-#                 'root://cms-xrd-global.cern.ch//store/data/Run2022B/MinimumBias/RAW/v1/000/355/567/00000/626e20cf-0d4b-40aa-9f25-e62e1fe7a60a.root', #13.6 tev collisions
-#                 'file:/eos/cms/tier0/store/data/Run2022B/MinimumBias/RAW/v1/000/355/556/00000/d0f6cd0b-3c4b-4ff8-a087-d1516259ba59.root',
-# below ones are July 1 900 gev after HB timing adjusted
-#                 'file:/eos/cms/tier0/store/data/Run2022A/MinimumBias/RAW/v1/000/354/784/00000/97f601c7-2245-4be2-b394-d7bab19cd89b.root',
-#                 'file:/eos/cms/tier0/store/data/Run2022A/MinimumBias1/RAW/v1/000/354/784/00000/5c1c5ab7-524f-49b5-9615-40822809d676.root', 
-#                 'file:/eos/cms/tier0/store/data/Run2022A/MinimumBias1/RAW/v1/000/354/784/00000/cafa5da9-a35e-43a2-a858-7d500ed6751c.root',
-#                 'file:/eos/cms/tier0/store/data/Run2022A/MinimumBias1/RAW/v1/000/354/784/00000/5c1c5ab7-524f-49b5-9615-40822809d676.root', #_4
-#                 'file:/eos/cms/tier0/store/data/Run2022A/MinimumBias1/RAW/v1/000/354/784/00000/cafa5da9-a35e-43a2-a858-7d500ed6751c.root',
-#                 'file:/eos/cms/tier0/store/data/Run2022A/MinimumBias1/RAW/v1/000/354/784/00000/5c1c5ab7-524f-49b5-9615-40822809d676.root',
-#                 'file:/eos/cms/tier0/store/data/Run2022A/MinimumBias1/RAW/v1/000/354/784/00000/cafa5da9-a35e-43a2-a858-7d500ed6751c.root',
-# below ones are July 20 after uHTR firmware 2.7.1 updated. This one isn't stable collisions though, working on finding more still
-#                 'file:/eos/cms/tier0/store/data/Run2022C/MinimumBias/RAW/v1/000/355/868/00000/83504cbc-9a71-4975-915c-e952517dd4d6.root', # not listed as stable beams on OMS though , so try the below jet HT ones for the run with stable beams instead
-#                 'file:/eos/cms/tier0/store/data/Run2022C/JetHT/RAW/v1/000/355/872/00000/00b959c4-1b06-41f9-a726-ecaba1831b04.root',
-#                 'file:/eos/cms/tier0/store/data/Run2022C/JetHT/RAW/v1/000/355/872/00000/014b9c99-4fc0-457d-8070-879a42596cef.root', # saved as _2
-#                 'file:/eos/cms/tier0/store/data/Run2022C/JetHT/RAW/v1/000/355/872/00000/02408038-c7f3-4aac-8092-9ef4b5fa1d8d.root', # saved as _4
-#                 'file:/eos/cms/tier0/store/data/Run2022C/JetHT/RAW/v1/000/355/872/00000/02ad7124-6228-416e-8729-2416aa25f331.root', # saved as _3
-#                 'file:/eos/cms/tier0/store/data/Run2022C/JetHT/RAW/v1/000/355/872/00000/02d7615a-89bc-4a62-b9a1-66b62c950472.root', # saved as _5
-#                 'file:/eos/cms/tier0/store/data/Run2022C/JetHT/RAW/v1/000/355/872/00000/e5a743ca-e07a-48e9-a10f-76ce3fc41dac.root', # saved as _6
-# above files no longer on tier 0 store, now use following ones to get L1 jets:
-#                 'file:/eos/cms/tier0/store/data/Run2022C/JetHT/RAW/v1/000/355/999/00000/f0249c96-bb32-4661-a1a9-a4424bfc57d7.root',
 # below ones are QIE scan during collisions from Aug 5
-#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/ba3ade5a-1bde-41a1-beab-3e2ca766963c.root', # _1
-#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/7a56d274-08e0-4982-b055-c5117eb5e05a.root', # _2
-                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/3fcce1e3-9b87-4a1f-88d6-fac263c05569.root', # _3
-#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/007001c1-d52a-4c8c-ada2-f859d7281811.root', # _4
-#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/fc35391d-c006-4df6-8de5-1e6c39e22bd4.root', # _5
+#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/ba3ade5a-1bde-41a1-beab-3e2ca766963c.root', # _1 delay 2
+#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/7a56d274-08e0-4982-b055-c5117eb5e05a.root', # _2 delay 6
+#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/3fcce1e3-9b87-4a1f-88d6-fac263c05569.root', # _3 delay 8
+#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/007001c1-d52a-4c8c-ada2-f859d7281811.root', # _4 delay 999
+#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/fc35391d-c006-4df6-8de5-1e6c39e22bd4.root', # _5 delay -2
+#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/39c00ef9-7270-4201-8875-7638dcf057b2.root', # _6 delay 999
+#                 'file:/eos/cms/store/data/Run2022C/JetMET/RAW/v1/000/356/815/00000/650dfb51-9ca3-4961-9b89-51c760a92126.root', # _7 delay 4
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/55cbae58-4c5b-4e0e-90e6-b08f45497e94.root', # _8 delay 2
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/2a222141-17cd-4bdb-992f-c230da36b5c1.root', # _9 delay 8
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/a12a0a0a-3cc8-43b5-8163-be29cc0f5d99.root', # _10 delay 2
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/f3093867-ee60-4385-ab80-8eb30eb4d892.root', # _11 delay 6
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/6807a714-8cc7-4844-acfc-15f2afe6469c.root',  # _12 delay 6
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/111a452e-463a-4bc0-84f3-836fd35f1e17.root',  #  _13 delay 8
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/53559ae2-8739-457b-9867-e589b53b5823.root',  #  _14 delay 8
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/8660f0a0-2a6e-48d0-9f22-4fbd7b2194a6.root',  #  delay -2
+                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/cbc842d1-2ff2-4896-94ba-4b7583465a94.root',  # _ 15 delay 4
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/QIEPhaseScan2022/356815_JetMET_RAW/..... # should switch all to be like this since this is where data is permanently stored
+#                 'file:/eos/cms/tier0/store/data/Run2022D/JetMET/RAW/v1/000/357/900/00000/113cb5c7-a91d-41b6-a790-cf173e8bf8be.root', #data from aug 25
+# LED run with new LUTs
+#                 'file:/eos/cms/store/group/dpg_hcal/comm_hcal/USC/run360234/USC_360234.root',
                  VarParsing.VarParsing.multiplicity.list,
                  VarParsing.VarParsing.varType.string,
                  "Input files")
 
 options.register('outputFile',
-                 "file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_QIEphasescan_relNominal_run356815_3.root",
+                 "file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_LED_LUTs_run360234.root", #356815 qie phase scan
+#                 "file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_run357900.root", #aug 25 data
 #                 "HcalTupleMaker_All_QIE11_1.root", # default value
                  VarParsing.VarParsing.multiplicity.singleton,
                  VarParsing.VarParsing.varType.string,
@@ -118,6 +112,7 @@ process.load("HCALPFG.HcalTupleMaker.HcalTupleMaker_cfi") # loads all modules
 process.load("HCALPFG.HcalTupleMaker.HcalTupleMaker_Trigger_cfi")
 process.load("HCALPFG.HcalTupleMaker.HcalTupleMaker_L1Jets_cfi") # added for L1 jet access
 process.load("HCALPFG.HcalTupleMaker.HcalL1JetDigisProducer_cfi") # added for L1 jet access
+#process.load("HCALPFG.HcalTupleMaker.HcalTupleMaker_cfi")
 
 ## set desired parameters, for example:
 #process.hcalTupleHFDigis.DoEnergyReco = False
