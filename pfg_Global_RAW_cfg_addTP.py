@@ -49,7 +49,8 @@ options.register('inputFiles',
                  "Input files")
 
 options.register('outputFile',
-                 "file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_LED_LUTs_run360234.root", #356815 qie phase scan
+#                 "file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_LED_LUTs_run360234.root", #360234 new TDC LUTs
+                 "file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_QIEphasescan_relNominal_run356815_15.root", #356815 qie phase scan
 #                 "file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_QIE11_TP_13TeV_run357900.root", #aug 25 data
 #                 "HcalTupleMaker_All_QIE11_1.root", # default value
                  VarParsing.VarParsing.multiplicity.singleton,
