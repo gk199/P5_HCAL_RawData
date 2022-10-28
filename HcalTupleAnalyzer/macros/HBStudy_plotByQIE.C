@@ -1,6 +1,7 @@
 #define HBStudy_plotByQIE_cxx
 #include "HBStudy_plotByQIE.h"
 #include <TH2.h>
+#include <TF1.h>
 #include <TStyle.h>
 #include <TCanvas.h>
 #include <TEfficiency.h>
@@ -47,25 +48,30 @@ void HBStudy_plotByQIE::Loop()
   latex->SetNDC();
   latex->SetTextFont(42);
   latex->SetTextColor(kBlack);
-
+  
   if (fChain == 0) return;
   
   Long64_t nentries = fChain->GetEntriesFast();
   
   // QIE11 digi
+  std::map<int, std::map<int,TH1F*>> HB_energy_byTS; // ieta, depth 
+  std::map<int, std::map<int,TH1D*>> HB_landau_fit; // ieta, depth
+
+  TH2D* Landau_vs_TDC = new TH2D("Landau_vs_TDC","Landau result vs TDC code;Landau;TDC",20,3,6,4,0,4);
+  
   std::map<int, std::map<int, std::map<int, TH1F*>>> HB_TDC_byIeta; // TDC, depth
   std::map<int, std::map<int, std::map<int, TH1F*>>> HB_TDC_byIeta_effs; // TDC, depth (for stacked histogram)
   std::map<int, TH1F*> HB_cell_valid; // depth
-
+  
   // TP digi
   std::map<int, TH1F*> FG_byIeta; // FBs
   std::map<int, TH1F*> FG_byIeta_effs; // FBs (for stacked histogram)
   TH1F* Tower_valid = new TH1F(Form("Tower_valid"),"Valid tower;i#eta;Fraction of Events",16,1,17);
   //  TH1F* Tower_valid;
-
-  const int ADCenergy = 36; // about 3 GeV 
+  
+  const int ADCenergy = 4; //36; // about 3 GeV 
   const int FCenergy = 4800; // about 3 GeV 
-
+  
   int ADC_4GeV[16][4] = {{55, 73, 81, 84},
 			 {57, 76, 81, 83},
 			 {55, 79, 83, 86},
@@ -116,6 +122,8 @@ void HBStudy_plotByQIE::Loop()
     {{62, 86, 91, 97}, {72, 89, 93, 102}, {66, 92, 95, 102}, {59, 86, 90, 103}, {60, 87, 95, 95}, {105, 87, 92, 103}, {60, 86, 92, 100}, {68, 88, 91, 99}, {59, 87, 87, 99}, {54, 89, 93, 100}, {58, 88, 95, 97}, {62, 87, 94, 96}, {60, 91, 94, 98}, {63, 89, 94, 103}, {51, 90, 90, 100}, {70, 92, 93, 103}, {52, 82, 91, 91}, {62, 92, 94, 98}, {63, 90, 95, 103}, {62, 93, 97, 91}, {70, 87, 90, 101}, {76, 93, 92, 100}, {60, 88, 92, 100}, {72, 91, 92, 102}, {62, 91, 90, 98}, {67, 94, 93, 102}, {63, 90, 91, 98}, {63, 92, 92, 103}, {61, 89, 93, 100}, {66, 90, 92, 102}, {58, 90, 95, 99}, {69, 86, 87, 90}, {58, 87, 92, 101}, {81, 90, 93, 103}, {62, 89, 93, 101}, {75, 88, 90, 97}, {59, 92, 91, 94}, {62, 92, 93, 100}, {80, 85, 91, 101}, {58, 89, 96, 103}, {58, 88, 90, 92}, {63, 90, 98, 97}, {73, 89, 96, 100}, {53, 87, 88, 98}, {72, 89, 88, 96}, {60, 88, 92, 96}, {63, 87, 92, 101}, {58, 91, 91, 99}, {66, 86, 98, 99}, {61, 88, 89, 100}, {63, 86, 89, 97}, {59, 83, 87, 99}, {59, 85, 91, 90}, {59, 89, 98, 97}, {62, 85, 89, 104}, {55, 91, 90, 99}, {60, 84, 89, 96}, {70, 87, 92, 101}, {61, 89, 96, 101}, {56, 88, 94, 103}, {63, 89, 96, 92}, {68, 91, 94, 96}, {58, 88, 89, 101}, {60, 86, 89, 102}, {60, 88, 91, 100}, {67, 92, 96, 99}, {59, 88, 88, 97}, {60, 90, 89, 101}, {63, 89, 91, 95}, {68, 89, 92, 100}, {61, 88, 91, 101}, {61, 85, 88, 100}},
     {{59, 85, 92, 0}, {73, 83, 90, 0}, {70, 86, 95, 0}, {72, 82, 87, 0}, {76, 85, 94, 0}, {70, 85, 88, 0}, {80, 80, 93, 0}, {75, 84, 88, 0}, {69, 83, 93, 0}, {80, 86, 90, 0}, {66, 82, 95, 0}, {77, 82, 94, 0}, {62, 85, 94, 0}, {72, 83, 89, 0}, {63, 83, 90, 0}, {75, 86, 93, 0}, {70, 81, 90, 0}, {71, 88, 91, 0}, {76, 83, 92, 0}, {77, 85, 92, 0}, {79, 83, 93, 0}, {80, 85, 92, 0}, {76, 85, 88, 0}, {74, 87, 92, 0}, {78, 84, 93, 0}, {79, 87, 92, 0}, {71, 85, 91, 0}, {80, 84, 90, 0}, {81, 85, 94, 0}, {79, 82, 90, 0}, {75, 88, 92, 0}, {75, 82, 88, 0}, {74, 82, 94, 0}, {80, 85, 89, 0}, {79, 85, 94, 0}, {73, 84, 89, 0}, {78, 86, 95, 0}, {76, 86, 90, 0}, {75, 83, 90, 0}, {78, 85, 90, 0}, {75, 84, 96, 0}, {69, 82, 95, 0}, {75, 84, 95, 0}, {76, 83, 89, 0}, {78, 80, 92, 0}, {70, 82, 91, 0}, {58, 84, 88, 0}, {73, 87, 92, 0}, {71, 80, 98, 0}, {62, 85, 88, 0}, {61, 81, 91, 0}, {71, 84, 87, 0}, {76, 72, 88, 0}, {63, 85, 92, 0}, {78, 80, 86, 0}, {70, 85, 98, 0}, {69, 85, 93, 0}, {81, 82, 92, 0}, {74, 85, 95, 0}, {69, 84, 85, 0}, {80, 82, 98, 0}, {76, 83, 90, 0}, {70, 82, 86, 0}, {75, 82, 90, 0}, {74, 85, 91, 0}, {72, 87, 96, 0}, {73, 82, 86, 0}, {74, 82, 89, 0}, {62, 85, 92, 0}, {72, 82, 91, 0}, {77, 84, 89, 0}, {72, 81, 89, 0}}};
 
+  TFile file_out(Form("hcal_histograms_13tev_QIE_plotByQIE.root"),"RECREATE");
+
   Long64_t nbytes = 0, nb = 0;
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     Long64_t ientry = LoadTree(jentry);
@@ -131,14 +139,45 @@ void HBStudy_plotByQIE::Loop()
       
       if (abs(ch_ieta) <= 16) {
 	if (abs(ch_ieta) == 16 && QIE11DigiDepth->at(ch) == 4) continue;
+	
+	//	if (QIE11DigiADC->at(ch).at(3) > ADC_4GeV[abs(ch_ieta) - 1][ch_depth - 1])	
+	if ((QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta - 1][ch_iphi-1][ch_depth - 1] && ch_ieta > 0) || (QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta * -1 + 16 - 1][ch_iphi-1][ch_depth - 1] && ch_ieta < 0)) { 
 
-	if (HB_cell_valid.find(ch_depth) == HB_cell_valid.end()) HB_cell_valid[ch_depth] = new TH1F(Form("HB_cell_valid_depth%d",ch_depth),"Valid cell;i#eta;Fraction of Events",16,1,17);
-	//	if (QIE11DigiADC->at(ch).at(3) > ADC_4GeV[abs(ch_ieta) - 1][ch_depth - 1]) 
-	if ((QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta - 1][ch_iphi-1][ch_depth - 1] && ch_ieta > 0) || (QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta * -1 + 16 - 1][ch_iphi-1][ch_depth - 1] && ch_ieta < 0))
+	  if (HB_cell_valid.find(ch_depth) == HB_cell_valid.end()) HB_cell_valid[ch_depth] = new TH1F(Form("HB_cell_valid_depth%d",ch_depth),"Valid cell;i#eta;Fraction of Events",16,1,17);
 	  HB_cell_valid[ch_depth]->Fill(abs(ch_ieta),1); // just fill if cell > 4 GeV (in SOI)
+
+	  float totalEnergy = 0;	  
+	  if (HB_energy_byTS[ch_ieta].find(ch_depth) == HB_energy_byTS[ch_ieta].end()) HB_energy_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_pulseShape_ieta%d_depth%d",ch_ieta,ch_depth),Form("Pulse Shape, i#eta=%d, depth=%d;TS;Fraction of Energy",ch_ieta,ch_depth),8,0,8);
+	  if (HB_landau_fit[ch_ieta].find(ch_depth) == HB_landau_fit[ch_ieta].end()) HB_landau_fit[ch_ieta][ch_depth] = new TH1D(Form("HB_landau_ieta%d_depth%d",ch_ieta,ch_depth),Form("Landau result, i#eta=%d, depth=%d;fit result;Fraction of pulses",ch_ieta,ch_depth),20,2,6);
+
+	  TH1F* HB_energy_byTS_landau = new TH1F(Form("HB_pulseShapeFit_ieta%d_depth%d_iphi%d_event%d",QIE11DigiIEta->at(ch),ch_depth,ch_iphi,jentry),Form("Pulse Shape Fit, i#eta=%d, depth=%d;TS;Fraction of Energy",ch_ieta,ch_depth),8,0,8);
+
+	  int maxTS = 0;
+	  for (int TS = 0; TS < 8; TS++) totalEnergy += QIE11DigiADC->at(ch).at(TS);
+	  for (int TS = 0; TS < 8; TS++) {
+	    double fractional_energy = QIE11DigiADC->at(ch).at(TS)  / totalEnergy;
+	    if (QIE11DigiADC->at(ch).at(TS) > QIE11DigiADC->at(ch).at(maxTS)) maxTS = TS;
+	    HB_energy_byTS[ch_ieta][ch_depth]->Fill(TS, fractional_energy);
+	    HB_energy_byTS_landau->Fill(TS, QIE11DigiADC->at(ch).at(TS));
+	  }
+	  TF1* fit1 = new TF1("fit_landau","landau",maxTS-1,maxTS+4);
+	  HB_energy_byTS_landau->Fit(fit1,"QRL+");
+	  
+	  //	  double max_approx = fit1->GetParameter(1) - 0.22278298 * fit1->GetParameter(0);
+	  HB_landau_fit[ch_ieta][ch_depth]->Fill(fit1->GetParameter(1));
+
+	  int validTDC = -1;
+          if (QIE11DigiADC->at(ch).at(3) != 3) validTDC= QIE11DigiADC->at(ch).at(3) + 1;
+          if (QIE11DigiADC->at(ch).at(2) == 2) validTDC= QIE11DigiADC->at(ch).at(2) -2;
+	  Landau_vs_TDC->Fill(fit1->GetParameter(1),validTDC);
+	  //	  if (ch_ieta == 1) HB_energy_byTS_landau->Write();
+	  //	  if (ch_ieta == 1) std::cout << "fit parameters: normalization coeff: " << fit1->GetParameter(0) << " most probable value: " << fit1->GetParameter(1) << " Lambda value: " << fit1->GetParameter(2) << " for ieta, iphi, depth = " << QIE11DigiIEta->at(ch) << ", " << ch_iphi << ", " << ch_depth << std::endl;
+	} // 4 GeV requirment 
+
 	
 	//	int TS = 3;
-	for (int TS = 2; TS <= 3; TS++) { // TS = 2 is SOI-1, TS = 3 is SOI
+	for (int TS = 2; TS <= 4; TS++) { // TS = 2 is SOI-1, TS = 3 is SOI, TS = 4 is SOI+1
+	//	for (int TS = 0; TS <= 7; TS++) {
 	  for (int TDC = 0; TDC < 4; TDC++) {
 	    if (HB_TDC_byIeta[TS][TDC].find(ch_depth) == HB_TDC_byIeta[TS][TDC].end()) HB_TDC_byIeta[TS][TDC][ch_depth] = new TH1F(Form("HB_TS%d_%dTDC_depth%d",TS,TDC,ch_depth),Form("TDC=%d (TS=%d);i#eta;Fraction of Events",TDC,TS),16,1,17);
 	    if (HB_TDC_byIeta_effs[TS][TDC].find(ch_depth) == HB_TDC_byIeta_effs[TS][TDC].end()) HB_TDC_byIeta_effs[TS][TDC][ch_depth] = new TH1F(Form("HB_TS%d_%dTDC_effs_depth%d",TS,TDC,ch_depth),Form("TDC=%d (TS=%d);i#eta;Fraction of Events",TDC,TS),16,1,17);
@@ -174,6 +213,7 @@ void HBStudy_plotByQIE::Loop()
 	if (FG_byIeta.find(FB) == FG_byIeta.end()) FG_byIeta[FB] = new TH1F(Form("FB%d_TS%d",FB,TS),Form("FB=%d (TS=%d);i#eta;Fraction of Events",FB,TS),16,1,17);
         if (FG_byIeta_effs.find(FB) == FG_byIeta_effs.end()) FG_byIeta_effs[FB] = new TH1F(Form("FB%d_TS%d_effs",FB,TS),Form("FB=%d (TS=%d) efficiencies;i#eta;Fraction of Events",FB,TS),16,1,17);
 	}  
+	if (TPieta >= 9 && TPieta <= 12 && TPiphi == 53) continue; // skip these because it corresponds to the hot channels (ieta 9-12 and iphi 51 in QIE11, but reported iphi 53 in TP digi)
 	if (fg1 == 1) FG_byIeta[1]->Fill(abs(TPieta),1);
 	if (fg2 == 1) FG_byIeta[2]->Fill(abs(TPieta),1);
 	if (fg3 == 1) FG_byIeta[3]->Fill(abs(TPieta),1);
@@ -181,14 +221,15 @@ void HBStudy_plotByQIE::Loop()
     } // end TP digi loop
   } // end event loop
     
-  TFile file_out(Form("hcal_histograms_13tev_QIE_plotByQIE.root"),"RECREATE");
+  //  TFile file_out(Form("hcal_histograms_13tev_QIE_plotByQIE.root"),"RECREATE");
   
   //  int runNum = 360094; // before local LUT update
   //  int runNum = 360234; // after local LUT update 
   //  TString cmsLabel = Form("#scale[1.0]{#bf{CMS}} #scale[0.8]{#it{2022 HCAL Local LED Run %d}}",runNum);
 
-  int runNum = 360486; // after L1 prescale 
-  //  int runNum = 360794; // after LUT update
+  //  int runNum = 360486; // after L1 prescale 
+  int runNum = 360794; // after LUT update
+  //  int runNum = 361239; // test 15 events for landau fit
   TString cmsLabel = Form("#scale[1.0]{#bf{CMS}} #scale[0.8]{#it{2022 13.6 TeV Collisions Run %d}}",runNum);
 
   float commentaryXpos = 0.6;
@@ -198,7 +239,8 @@ void HBStudy_plotByQIE::Loop()
   // average pulse shape in HB
   TCanvas *cHB_pulse_shape;
   
-  for (int TS = 2; TS <= 3; TS++) {
+  for (int TS = 2; TS <= 4; TS++) {
+    //  for (int TS = 0; TS <= 7; TS++) {
     for (int TDC = 0; TDC < 4; TDC++) {
       
       TCanvas *cHB_promptTDC_4 = new TCanvas("c","c",3200,600); // reset canvas
@@ -260,7 +302,105 @@ void HBStudy_plotByQIE::Loop()
     }
     latex->DrawLatex(0.35, 0.95, cmsLabel);
     cHB_stackedTDC->SaveAs(Form("LUT_Test/TDC_by_ieta_2022_13tev_TS%d_run%d.png",TS,runNum));
+
+    // stacked histogram but with different ordering
+    for (std::map<int,TH1F*>::iterator it = HB_TDC_byIeta_effs[TS][0].begin() ; it != HB_TDC_byIeta_effs[TS][0].end(); it++) { // it->first is depth, it->second is TH1F HB_TDC_byIeta[TS][TDC]
+      THStack *hstack = new THStack("hstack",";i#eta;Fraction of each TDC code present");
+      for (int TDC = 0; TDC < 4; TDC ++) {
+	if (TDC==0) HB_TDC_byIeta_effs[TS][TDC][it->first]->SetFillColor(40);
+	if (TDC==1) HB_TDC_byIeta_effs[TS][TDC][it->first]->SetFillColor(38);
+	if (TDC==2) HB_TDC_byIeta_effs[TS][TDC][it->first]->SetFillColor(30);
+	if (TDC==3) HB_TDC_byIeta_effs[TS][TDC][it->first]->SetFillColor(45);
+	HB_TDC_byIeta_effs[TS][TDC][it->first]->SetFillStyle(1001);
+	HB_TDC_byIeta_effs[TS][TDC][it->first]->SetTitle(Form("TDC=%d",TDC));
+      }
+      hstack->Add(HB_TDC_byIeta_effs[TS][2][it->first]);
+      hstack->Add(HB_TDC_byIeta_effs[TS][1][it->first]);
+      hstack->Add(HB_TDC_byIeta_effs[TS][0][it->first]);
+      hstack->Add(HB_TDC_byIeta_effs[TS][3][it->first]);
+      hstack->SetMinimum(0.001);
+
+      cHB_stackedTDC->cd(it->first);
+      hstack->Draw("bar1");
+      if (it->first == 1) gPad->BuildLegend(0.8,0.85,0.95,1.0,""); //(0.75,0.72,0.95,0.92,"");      
+      latex->DrawLatex(commentaryXpos + 0.1, 0.65, Form("#scale[0.8]{depth=%d}",it->first));
+      if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{TDC Code in HB vs. i#eta (TS=%d)}",TS));
+      gStyle->SetOptStat(0);
+      gPad->SetLogy();
+      gPad->Update();
+    }
+    latex->DrawLatex(0.35, 0.95, cmsLabel);
+    cHB_stackedTDC->SaveAs(Form("LUT_Test/TDC_by_ieta_2022_13tev_TS%d_run%d_log.png",TS,runNum));
   } // end TS loop
+
+  // pulse shape plots
+  for (int ieta = 1; ieta <= 16; ieta++) {
+    if (ieta == 0) continue;
+
+    TCanvas *cHB_pulse_4 = new TCanvas("c","c",3200,600);
+    cHB_pulse_4->Divide(4,1,0.01,0.01);
+    for (std::map<int,TH1F*>::iterator it = HB_energy_byTS[ieta].begin() ; it != HB_energy_byTS[ieta].end(); it++) { // it->first is depth, it->second is TH1F HB_energy_byTS
+      cHB_pulse_shape = new TCanvas(); // reset canvas
+      HB_energy_byTS[ieta][it->first]->Scale(1/HB_energy_byTS[ieta][it->first]->Integral());
+      if (HB_energy_byTS[ieta][it->first]->GetEntries() == 0) continue;
+      HB_energy_byTS[ieta][it->first]->SetFillColor(30);
+      HB_energy_byTS[ieta][it->first]->Draw("bar1");
+      HB_energy_byTS[ieta][it->first]->Write();
+      HB_energy_byTS[ieta][it->first]->SetMaximum(0.6);
+      HB_energy_byTS[ieta][it->first]->SetMinimum(0.);
+      
+      latex->DrawLatex(0.12, 0.85, cmsLabel);
+      
+      latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
+      latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%dGeV in one TS}",ADCenergy));
+      
+      gPad->Update();
+      cHB_pulse_4->cd(it->first);
+      HB_energy_byTS[ieta][it->first]->SetTitle("");
+      HB_energy_byTS[ieta][it->first]->Draw("bar1");
+      HB_energy_byTS[ieta][it->first]->Write();
+      latex->DrawLatex(depthXpos, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+      if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{Energy in HB by TS, for i#eta=%d}",ieta));
+      gPad->Update();
+    }
+    latex->DrawLatex(0.35, 0.95, cmsLabel);
+    cHB_pulse_4->SaveAs(Form("LUT_Test/HB_pulseShape_ieta%d_2022_13tev_run%d.png",ieta,runNum));  
+
+    for (std::map<int,TH1D*>::iterator it = HB_landau_fit[ieta].begin() ; it != HB_landau_fit[ieta].end(); it++) {
+      cHB_pulse_shape = new TCanvas(); // reset canvas                                                                                                                      
+      HB_landau_fit[ieta][it->first]->Scale(1/HB_landau_fit[ieta][it->first]->Integral());
+      if (HB_landau_fit[ieta][it->first]->GetEntries() == 0) continue;
+      HB_landau_fit[ieta][it->first]->SetFillColor(40);
+      HB_landau_fit[ieta][it->first]->Draw("bar1");
+      HB_landau_fit[ieta][it->first]->Write();
+      HB_landau_fit[ieta][it->first]->SetMaximum(1);
+      HB_landau_fit[ieta][it->first]->SetMinimum(0.);
+
+      latex->DrawLatex(0.12, 0.85, cmsLabel);
+
+      latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
+      latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%dGeV in SOI}",ADCenergy));
+      gStyle->SetOptStat(100);
+      gPad->Update();
+      cHB_pulse_4->cd(it->first);
+      HB_landau_fit[ieta][it->first]->SetTitle("");
+      HB_landau_fit[ieta][it->first]->Draw("bar1");
+      HB_landau_fit[ieta][it->first]->Write();
+      latex->DrawLatex(depthXpos, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+      if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{Landau Pulse Shape Fit Result, for i#eta=%d}",ieta));
+      
+      gPad->Update();
+    }
+    latex->DrawLatex(0.35, 0.95, cmsLabel);
+    cHB_pulse_4->SaveAs(Form("LUT_Test/HB_LandauFit_ieta%d_2022_13tev_run%d.png",ieta,runNum));
+  }
+
+  TCanvas* cHB_2D = new TCanvas();
+  Landau_vs_TDC->Draw("COLZ");
+  latex->DrawLatex(0.35, 0.95, cmsLabel);
+  latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%dGeV in SOI}",ADCenergy));
+  gPad->Update();
+  cHB_2D->SaveAs(Form("Landau_vs_TDC_2022_13tev_run%d.png",runNum));
 
   // FG bit plots
   for (std::map<int,TH1F*>::iterator it = FG_byIeta.begin() ; it != FG_byIeta.end(); it++) { // it->first is FG bit, it->second is TH1F FG_byIeta
