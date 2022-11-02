@@ -57,7 +57,7 @@ void HBStudy_plotByQIE::Loop()
   std::map<int, std::map<int,TH1F*>> HB_energy_byTS; // ieta, depth 
   std::map<int, std::map<int,TH1D*>> HB_landau_fit; // ieta, depth
 
-  TH2D* Landau_vs_TDC = new TH2D("Landau_vs_TDC","Landau result vs TDC code;Landau;TDC",20,3,6,4,0,4);
+  TH2D* Landau_vs_TDC = new TH2D("Landau_vs_TDC","Landau result vs TDC code;Landau MPV Result;TDC (- SOI-1, 0-2 in SOI, 3+ SOI+1)",50,2.5,5,5,-1,4);
   
   std::map<int, std::map<int, std::map<int, TH1F*>>> HB_TDC_byIeta; // TDC, depth
   std::map<int, std::map<int, std::map<int, TH1F*>>> HB_TDC_byIeta_effs; // TDC, depth (for stacked histogram)
@@ -124,6 +124,17 @@ void HBStudy_plotByQIE::Loop()
 
   TFile file_out(Form("hcal_histograms_13tev_QIE_plotByQIE.root"),"RECREATE");
 
+  TCanvas* cLandau2 = new TCanvas();
+  TF1 *f1 = new TF1("f1","TMath::Landau(x,[0],[1],0)",-5,10);
+  f1->SetParameters(0,1);
+  f1->Draw();
+  latex->DrawLatex(0.65, 0.85, Form("#scale[0.8]{#it{Landau, #mu=0, #sigma=1}}"));
+  double Landau01_turnOn = f1->GetX(0.06,-3.0,-1.0);
+  std::cout << Landau01_turnOn << std::endl;
+  latex->DrawLatex(0.65, 0.8, Form("#scale[0.8]{#it{x=%.3f, y=0.06}}",Landau01_turnOn));
+  gPad->Update();
+  cLandau2->SaveAs(Form("Landau_01.png"));
+
   Long64_t nbytes = 0, nb = 0;
   for (Long64_t jentry=0; jentry<nentries;jentry++) {
     Long64_t ientry = LoadTree(jentry);
@@ -148,7 +159,7 @@ void HBStudy_plotByQIE::Loop()
 
 	  float totalEnergy = 0;	  
 	  if (HB_energy_byTS[ch_ieta].find(ch_depth) == HB_energy_byTS[ch_ieta].end()) HB_energy_byTS[ch_ieta][ch_depth] = new TH1F(Form("HB_pulseShape_ieta%d_depth%d",ch_ieta,ch_depth),Form("Pulse Shape, i#eta=%d, depth=%d;TS;Fraction of Energy",ch_ieta,ch_depth),8,0,8);
-	  if (HB_landau_fit[ch_ieta].find(ch_depth) == HB_landau_fit[ch_ieta].end()) HB_landau_fit[ch_ieta][ch_depth] = new TH1D(Form("HB_landau_ieta%d_depth%d",ch_ieta,ch_depth),Form("Landau result, i#eta=%d, depth=%d;fit result;Fraction of pulses",ch_ieta,ch_depth),20,2,6);
+	  if (HB_landau_fit[ch_ieta].find(ch_depth) == HB_landau_fit[ch_ieta].end()) HB_landau_fit[ch_ieta][ch_depth] = new TH1D(Form("HB_landau_ieta%d_depth%d",ch_ieta,ch_depth),Form("Landau result, i#eta=%d, depth=%d;fit result;Fraction of pulses",ch_ieta,ch_depth),25,1.5,4);
 
 	  TH1F* HB_energy_byTS_landau = new TH1F(Form("HB_pulseShapeFit_ieta%d_depth%d_iphi%d_event%d",QIE11DigiIEta->at(ch),ch_depth,ch_iphi,jentry),Form("Pulse Shape Fit, i#eta=%d, depth=%d;TS;Fraction of Energy",ch_ieta,ch_depth),8,0,8);
 
@@ -160,18 +171,23 @@ void HBStudy_plotByQIE::Loop()
 	    HB_energy_byTS[ch_ieta][ch_depth]->Fill(TS, fractional_energy);
 	    HB_energy_byTS_landau->Fill(TS, QIE11DigiADC->at(ch).at(TS));
 	  }
-	  TF1* fit1 = new TF1("fit_landau","landau",maxTS-1,maxTS+4);
+
+	  TF1* fit1 = new TF1("fit_landau","landau",maxTS-1,maxTS+3);
 	  HB_energy_byTS_landau->Fit(fit1,"QRL+");
 	  
 	  //	  double max_approx = fit1->GetParameter(1) - 0.22278298 * fit1->GetParameter(0);
-	  HB_landau_fit[ch_ieta][ch_depth]->Fill(fit1->GetParameter(1));
+	  HB_landau_fit[ch_ieta][ch_depth]->Fill(fit1->GetParameter(1)  + fit1->GetParameter(2) * Landau01_turnOn);
+	  
 
 	  int validTDC = -1;
-          if (QIE11DigiADC->at(ch).at(3) != 3) validTDC= QIE11DigiADC->at(ch).at(3) + 1;
-          if (QIE11DigiADC->at(ch).at(2) == 2) validTDC= QIE11DigiADC->at(ch).at(2) -2;
-	  Landau_vs_TDC->Fill(fit1->GetParameter(1),validTDC);
+	  if (QIE11DigiTDC->at(ch).at(4) != 3) validTDC = QIE11DigiTDC->at(ch).at(4) + 3; // SOI+1
+	  if (QIE11DigiTDC->at(ch).at(3) != 3) validTDC = QIE11DigiTDC->at(ch).at(3); // SOI
+          if (QIE11DigiTDC->at(ch).at(2) != 3) validTDC = QIE11DigiTDC->at(ch).at(2) - 3; // SOI-1
+	  if (validTDC != -1) Landau_vs_TDC->Fill(fit1->GetParameter(1) + fit1->GetParameter(2) * Landau01_turnOn,validTDC);
+
 	  //	  if (ch_ieta == 1) HB_energy_byTS_landau->Write();
 	  //	  if (ch_ieta == 1) std::cout << "fit parameters: normalization coeff: " << fit1->GetParameter(0) << " most probable value: " << fit1->GetParameter(1) << " Lambda value: " << fit1->GetParameter(2) << " for ieta, iphi, depth = " << QIE11DigiIEta->at(ch) << ", " << ch_iphi << ", " << ch_depth << std::endl;
+	  //	  if (ch_ieta == 1) std::cout << "turn on = mu + sigma * -1.85 = " << fit1->GetParameter(1) + fit1->GetParameter(2) * Landau01_turnOn << std::endl;
 	} // 4 GeV requirment 
 
 	
@@ -238,7 +254,7 @@ void HBStudy_plotByQIE::Loop()
   // colors used = 9 (dark blue), 30 (green), 38 (blue), 40 (purple), 42 (orange / tan), 45/46/47 (red), 49 (muave)
   // average pulse shape in HB
   TCanvas *cHB_pulse_shape;
-  
+
   for (int TS = 2; TS <= 4; TS++) {
     //  for (int TS = 0; TS <= 7; TS++) {
     for (int TDC = 0; TDC < 4; TDC++) {
@@ -365,7 +381,13 @@ void HBStudy_plotByQIE::Loop()
     }
     latex->DrawLatex(0.35, 0.95, cmsLabel);
     cHB_pulse_4->SaveAs(Form("LUT_Test/HB_pulseShape_ieta%d_2022_13tev_run%d.png",ieta,runNum));  
+    //  }
 
+    // Landau fits
+    //  for (int ieta = -16; ieta <= 16; ieta++) {
+    //    if (ieta == 0) continue;
+
+    //    TCanvas *cHB_pulse_4 = new TCanvas("c","c",3200,600);
     for (std::map<int,TH1D*>::iterator it = HB_landau_fit[ieta].begin() ; it != HB_landau_fit[ieta].end(); it++) {
       cHB_pulse_shape = new TCanvas(); // reset canvas                                                                                                                      
       HB_landau_fit[ieta][it->first]->Scale(1/HB_landau_fit[ieta][it->first]->Integral());
@@ -380,7 +402,7 @@ void HBStudy_plotByQIE::Loop()
 
       latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
       latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%dGeV in SOI}",ADCenergy));
-      gStyle->SetOptStat(100);
+      gStyle->SetOptStat(1100);
       gPad->Update();
       cHB_pulse_4->cd(it->first);
       HB_landau_fit[ieta][it->first]->SetTitle("");
@@ -396,8 +418,9 @@ void HBStudy_plotByQIE::Loop()
   }
 
   TCanvas* cHB_2D = new TCanvas();
+  gPad->SetLogz(1);
   Landau_vs_TDC->Draw("COLZ");
-  latex->DrawLatex(0.35, 0.95, cmsLabel);
+  latex->DrawLatex(0.15, 0.85, cmsLabel);
   latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%dGeV in SOI}",ADCenergy));
   gPad->Update();
   cHB_2D->SaveAs(Form("Landau_vs_TDC_2022_13tev_run%d.png",runNum));
@@ -429,5 +452,6 @@ void HBStudy_plotByQIE::Loop()
   gPad->Update();
   latex->DrawLatex(0.12, 0.85, cmsLabel);
   FG_stack->SaveAs(Form("LUT_Test/FG_by_ieta_2022_13tev_run%d.png",runNum));
-
 }
+
+//  LocalWords:  TDC
