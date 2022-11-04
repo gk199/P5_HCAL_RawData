@@ -129,7 +129,8 @@ void HBStudy_plotByQIE::Loop()
   f1->SetParameters(0,1);
   f1->Draw();
   latex->DrawLatex(0.65, 0.85, Form("#scale[0.8]{#it{Landau, #mu=0, #sigma=1}}"));
-  double Landau01_turnOn = f1->GetX(0.06,-3.0,-1.0);
+  //  double Landau01_turnOn = f1->GetX(0.06,-3.0,-1.0);
+  double Landau01_turnOn = f1->GetX(0.12,-3.0,-1.0);
   std::cout << Landau01_turnOn << std::endl;
   latex->DrawLatex(0.65, 0.8, Form("#scale[0.8]{#it{x=%.3f, y=0.06}}",Landau01_turnOn));
   gPad->Update();
@@ -175,9 +176,12 @@ void HBStudy_plotByQIE::Loop()
 	  TF1* fit1 = new TF1("fit_landau","landau",maxTS-1,maxTS+3);
 	  HB_energy_byTS_landau->Fit(fit1,"QRL+");
 	  
-	  //	  double max_approx = fit1->GetParameter(1) - 0.22278298 * fit1->GetParameter(0);
-	  HB_landau_fit[ch_ieta][ch_depth]->Fill(fit1->GetParameter(1)  + fit1->GetParameter(2) * Landau01_turnOn);
-	  
+	  // quality requirement
+	  if (fit1->GetParameter(2) < 0.7) {
+	    HB_landau_fit[ch_ieta][ch_depth]->Fill(fit1->GetParameter(1)  + fit1->GetParameter(2) * Landau01_turnOn);
+	    //	  if (ch_depth == 1 && (fit1->GetParameter(1)  + fit1->GetParameter(2) * Landau01_turnOn < 2.5)) 
+	    //	    if (ch_ieta == 1) std::cout << "fit parameters: normalization coeff: " << fit1->GetParameter(0) << " most probable value: " << fit1->GetParameter(1) << " Lambda value: " << fit1->GetParameter(2) << " for ieta, iphi, depth = " << QIE11DigiIEta->at(ch) << ", " << ch_iphi << ", " << ch_depth << std::endl;
+	  }
 
 	  int validTDC = -1;
 	  if (QIE11DigiTDC->at(ch).at(4) != 3) validTDC = QIE11DigiTDC->at(ch).at(4) + 3; // SOI+1
@@ -398,10 +402,13 @@ void HBStudy_plotByQIE::Loop()
       HB_landau_fit[ieta][it->first]->SetMaximum(1);
       HB_landau_fit[ieta][it->first]->SetMinimum(0.);
 
-      latex->DrawLatex(0.12, 0.85, cmsLabel);
+      TF1* fit2 = new TF1("fit_gaus","gaus",2,3.5);
 
-      latex->DrawLatex(commentaryXpos, 0.65, Form("#scale[0.8]{i#eta=%d, depth=%d}",ieta,it->first));
-      latex->DrawLatex(commentaryXpos, 0.6, Form("#scale[0.8]{with ADC>%dGeV in SOI}",ADCenergy));
+      if (it->first == 1) HB_landau_fit[ieta][it->first]->Fit(fit2,"QRL+","",2.5,3.5); // gaussian fit has three parameters. 0: height at peak, 2: position of center of peak, 3: standard deviation (width)
+      if (it->first != 1) HB_landau_fit[ieta][it->first]->Fit(fit2,"QRL+");
+      fit2->Draw(); 
+      std::cout << "ieta = " << ieta << ", depth = " << it->first << ", gaussian peak = " << fit2->GetParameter(0) << ", gaussian mean = " << fit2->GetParameter(1) << ", stdev = " << fit2->GetParameter(2) << std::endl;
+
       gStyle->SetOptStat(1100);
       gPad->Update();
       cHB_pulse_4->cd(it->first);
@@ -409,6 +416,7 @@ void HBStudy_plotByQIE::Loop()
       HB_landau_fit[ieta][it->first]->Draw("bar1");
       HB_landau_fit[ieta][it->first]->Write();
       latex->DrawLatex(depthXpos, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+      latex->DrawLatex(depthXpos, 0.65, Form("#scale[0.8]{Gaussian mean=%.3f}",fit2->GetParameter(1)));
       if (it->first == 2) latex->DrawLatex(0.2, 0.95, Form("#scale[1.2]{Landau Pulse Shape Fit Result, for i#eta=%d}",ieta));
       
       gPad->Update();
