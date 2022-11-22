@@ -1,6 +1,7 @@
 #define HBStudy_plotByQIE_cxx
 #include "HBStudy_plotByQIE.h"
 #include <TH2.h>
+#include <TF1.h>
 #include <TStyle.h>
 #include <TCanvas.h>
 #include <TEfficiency.h>
@@ -57,6 +58,8 @@ void HBStudy_plotByQIE::Loop()
   std::map<int, std::map<int, std::map<int, std::map<int, TH1F*>>>> HB_TDC_byScan_effs; // TS, TDC, ieta, depth
   std::map<int, std::map<int, TH1F*>> HB_cell_valid;
 
+  std::map<int, std::map<int, std::map<int,TH1D*>>> HB_landau_fit; // scan point, ieta, depth
+
   // TP digi
   std::map<int, TH1F*> FB1_by_TS; // ieta
   std::map<int, TH1F*> FB2_by_TS;
@@ -88,7 +91,7 @@ void HBStudy_plotByQIE::Loop()
 			 {84, 101, 105, 114},
 			 {71, 103, 114, -999}}; // ieta, depth
 
-  int ADC_xml_decoded[32][72][4] = { // ieta (0-15 (ieta - 1), 16-31 (ieta * -1 + 16 to shift). ieta 9-11, iphi 51, depth 1 and 3 is set to 999 since the LUT is 0-ed here
+  int ADC_xml_decoded[32][72][4] = { // ieta (0-15 (ieta - 1), 16-31 (ieta * -1 + 16 to shift). ieta 9-11, iphi 51, depth 1 and 3 is set to 999 since the LUT is 0-ed here. This is Run3Sept2022 LUT
     {{41, 55, 60, 69}, {42, 60, 63, 69}, {39, 60, 70, 69}, {37, 60, 63, 63}, {37, 58, 62, 68}, {41, 62, 63, 67}, {41, 60, 63, 68}, {40, 61, 67, 68}, {39, 55, 57, 63}, {39, 58, 68, 66}, {42, 60, 63, 63}, {41, 55, 61, 67}, {42, 59, 58, 69}, {42, 59, 62, 62}, {44, 61, 69, 70}, {43, 59, 62, 67}, {40, 59, 68, 69}, {44, 60, 67, 68}, {41, 61, 68, 61}, {41, 61, 63, 67}, {38, 60, 63, 67}, {43, 57, 68, 68}, {43, 61, 62, 71}, {43, 62, 62, 70}, {46, 59, 61, 67}, {40, 58, 61, 62}, {41, 62, 66, 63}, {42, 59, 63, 68}, {41, 60, 66, 68}, {44, 63, 71, 71}, {41, 60, 69, 70}, {41, 60, 62, 71}, {41, 59, 66, 62}, {40, 60, 66, 68}, {44, 59, 63, 68}, {39, 59, 61, 61}, {41, 61, 69, 70}, {39, 60, 69, 63}, {40, 60, 68, 68}, {36, 55, 62, 62}, {42, 58, 68, 70}, {40, 61, 61, 69}, {38, 58, 67, 68}, {41, 61, 71, 70}, {39, 59, 61, 61}, {40, 61, 67, 69}, {41, 46, 58, 61}, {37, 56, 63, 70}, {36, 57, 60, 59}, {37, 53, 61, 63}, {44, 62, 63, 69}, {44, 61, 68, 74}, {36, 60, 63, 62}, {42, 60, 68, 71}, {39, 63, 63, 62}, {35, 61, 63, 67}, {40, 58, 62, 62}, {39, 58, 60, 68}, {41, 62, 62, 61}, {40, 62, 62, 67}, {38, 60, 59, 67}, {29, 59, 61, 72}, {38, 60, 68, 67}, {40, 60, 61, 63}, {41, 59, 68, 69}, {40, 61, 66, 70}, {36, 59, 68, 68}, {45, 62, 62, 69}, {42, 59, 63, 71}, {43, 63, 69, 70}, {40, 59, 62, 67}, {40, 59, 62, 63}},
     {{44, 60, 69, 69}, {43, 66, 62, 73}, {44, 62, 79, 73}, {39, 62, 66, 70}, {39, 62, 69, 76}, {41, 63, 69, 72}, {42, 67, 71, 73}, {40, 62, 63, 69}, {33, 61, 68, 68}, {40, 62, 68, 69}, {45, 63, 71, 69}, {42, 60, 63, 71}, {46, 61, 63, 71}, {42, 60, 70, 68}, {48, 71, 70, 72}, {40, 62, 70, 70}, {42, 61, 68, 72}, {49, 68, 69, 71}, {42, 63, 75, 70}, {40, 68, 71, 69}, {45, 61, 68, 67}, {45, 62, 63, 67}, {45, 62, 70, 72}, {42, 62, 69, 72}, {44, 61, 67, 71}, {40, 62, 66, 69}, {44, 69, 73, 71}, {38, 63, 69, 67}, {43, 62, 67, 73}, {44, 69, 69, 71}, {48, 67, 73, 75}, {45, 68, 69, 75}, {41, 60, 69, 66}, {43, 62, 63, 69}, {24, 58, 69, 72}, {40, 61, 68, 68}, {40, 69, 70, 71}, {39, 61, 71, 71}, {43, 63, 73, 72}, {38, 60, 66, 66}, {43, 62, 70, 72}, {38, 62, 66, 73}, {44, 63, 70, 70}, {38, 61, 70, 71}, {36, 68, 71, 68}, {41, 62, 68, 69}, {37, 53, 67, 71}, {37, 58, 63, 70}, {37, 61, 63, 62}, {38, 59, 61, 63}, {33, 63, 73, 75}, {43, 60, 70, 76}, {27, 70, 63, 67}, {45, 62, 71, 70}, {44, 69, 68, 70}, {38, 63, 72, 68}, {40, 62, 68, 70}, {39, 58, 61, 72}, {40, 73, 73, 63}, {43, 61, 67, 63}, {37, 67, 68, 74}, {37, 62, 67, 73}, {41, 62, 72, 73}, {63, 62, 62, 71}, {42, 69, 73, 72}, {39, 66, 73, 71}, {43, 63, 70, 73}, {48, 62, 68, 68}, {42, 62, 70, 76}, {42, 63, 71, 72}, {44, 63, 70, 70}, {39, 62, 66, 69}},
     {{44, 60, 69, 70}, {44, 62, 63, 71}, {79, 68, 75, 70}, {38, 63, 69, 69}, {39, 62, 72, 74}, {41, 63, 73, 69}, {41, 70, 68, 70}, {40, 68, 69, 69}, {40, 60, 67, 69}, {38, 63, 71, 67}, {44, 62, 71, 70}, {44, 58, 66, 71}, {43, 63, 67, 70}, {43, 60, 66, 68}, {44, 73, 72, 75}, {44, 67, 70, 69}, {43, 62, 72, 71}, {50, 69, 73, 69}, {41, 70, 71, 70}, {41, 63, 73, 69}, {44, 68, 71, 69}, {44, 62, 62, 69}, {43, 62, 70, 76}, {42, 61, 70, 69}, {45, 63, 66, 72}, {40, 62, 63, 67}, {43, 70, 74, 70}, {39, 62, 71, 69}, {45, 63, 70, 70}, {42, 60, 71, 70}, {45, 69, 75, 73}, {45, 68, 67, 73}, {42, 61, 71, 70}, {40, 58, 70, 70}, {45, 68, 69, 74}, {41, 62, 69, 62}, {71, 68, 73, 72}, {38, 63, 69, 68}, {42, 63, 73, 70}, {40, 59, 68, 66}, {46, 62, 70, 73}, {38, 62, 68, 68}, {43, 63, 71, 71}, {43, 68, 71, 67}, {42, 69, 70, 73}, {43, 66, 73, 70}, {43, 55, 59, 74}, {39, 57, 68, 69}, {37, 62, 68, 70}, {68, 62, 69, 68}, {46, 68, 72, 74}, {40, 60, 69, 70}, {42, 68, 69, 71}, {44, 62, 73, 68}, {42, 67, 63, 71}, {40, 67, 72, 73}, {39, 62, 67, 67}, {44, 63, 72, 71}, {44, 67, 68, 70}, {43, 62, 67, 62}, {37, 70, 69, 71}, {41, 67, 69, 69}, {40, 69, 74, 70}, {42, 62, 68, 70}, {41, 68, 73, 74}, {40, 66, 71, 71}, {43, 62, 73, 73}, {49, 63, 63, 63}, {42, 63, 70, 76}, {40, 69, 67, 70}, {45, 67, 71, 73}, {41, 62, 63, 67}},
@@ -121,6 +124,11 @@ void HBStudy_plotByQIE::Loop()
     {{61, 86, 89, 99}, {70, 86, 88, 100}, {67, 86, 91, 101}, {62, 84, 85, 99}, {60, 87, 91, 94}, {102, 86, 89, 101}, {60, 85, 89, 100}, {67, 85, 86, 97}, {55, 84, 90, 96}, {70, 82, 87, 96}, {59, 85, 92, 95}, {68, 84, 89, 98}, {57, 86, 91, 100}, {61, 82, 90, 99}, {58, 87, 89, 100}, {67, 84, 88, 98}, {62, 82, 89, 93}, {62, 88, 86, 95}, {61, 85, 91, 102}, {60, 87, 87, 95}, {67, 85, 90, 98}, {71, 84, 87, 96}, {60, 88, 85, 96}, {70, 88, 90, 101}, {59, 87, 87, 91}, {62, 89, 91, 100}, {60, 84, 86, 95}, {67, 89, 90, 102}, {58, 87, 88, 94}, {61, 84, 90, 97}, {58, 90, 89, 97}, {69, 83, 86, 93}, {57, 88, 90, 97}, {75, 85, 88, 101}, {60, 86, 88, 97}, {72, 82, 88, 94}, {55, 87, 85, 99}, {63, 88, 90, 97}, {73, 83, 84, 100}, {58, 88, 90, 96}, {58, 84, 88, 95}, {59, 86, 92, 99}, {76, 86, 88, 99}, {60, 83, 88, 96}, {69, 87, 86, 100}, {61, 87, 91, 90}, {60, 81, 88, 100}, {61, 88, 90, 95}, {62, 85, 90, 99}, {61, 86, 86, 95}, {57, 83, 84, 97}, {61, 86, 89, 91}, {58, 83, 85, 96}, {55, 86, 89, 90}, {61, 82, 86, 106}, {53, 90, 90, 97}, {60, 82, 90, 94}, {60, 85, 88, 100}, {59, 84, 92, 97}, {71, 84, 86, 96}, {57, 86, 85, 99}, {62, 85, 87, 100}, {54, 85, 87, 94}, {56, 84, 86, 97}, {59, 86, 90, 99}, {62, 89, 90, 100}, {59, 86, 88, 93}, {58, 85, 89, 96}, {62, 87, 84, 96}, {63, 87, 89, 97}, {59, 84, 86, 101}, {61, 84, 89, 97}},
     {{62, 86, 91, 97}, {72, 89, 93, 102}, {66, 92, 95, 102}, {59, 86, 90, 103}, {60, 87, 95, 95}, {105, 87, 92, 103}, {60, 86, 92, 100}, {68, 88, 91, 99}, {59, 87, 87, 99}, {54, 89, 93, 100}, {58, 88, 95, 97}, {62, 87, 94, 96}, {60, 91, 94, 98}, {63, 89, 94, 103}, {51, 90, 90, 100}, {70, 92, 93, 103}, {52, 82, 91, 91}, {62, 92, 94, 98}, {63, 90, 95, 103}, {62, 93, 97, 91}, {70, 87, 90, 101}, {76, 93, 92, 100}, {60, 88, 92, 100}, {72, 91, 92, 102}, {62, 91, 90, 98}, {67, 94, 93, 102}, {63, 90, 91, 98}, {63, 92, 92, 103}, {61, 89, 93, 100}, {66, 90, 92, 102}, {58, 90, 95, 99}, {69, 86, 87, 90}, {58, 87, 92, 101}, {81, 90, 93, 103}, {62, 89, 93, 101}, {75, 88, 90, 97}, {59, 92, 91, 94}, {62, 92, 93, 100}, {80, 85, 91, 101}, {58, 89, 96, 103}, {58, 88, 90, 92}, {63, 90, 98, 97}, {73, 89, 96, 100}, {53, 87, 88, 98}, {72, 89, 88, 96}, {60, 88, 92, 96}, {63, 87, 92, 101}, {58, 91, 91, 99}, {66, 86, 98, 99}, {61, 88, 89, 100}, {63, 86, 89, 97}, {59, 83, 87, 99}, {59, 85, 91, 90}, {59, 89, 98, 97}, {62, 85, 89, 104}, {55, 91, 90, 99}, {60, 84, 89, 96}, {70, 87, 92, 101}, {61, 89, 96, 101}, {56, 88, 94, 103}, {63, 89, 96, 92}, {68, 91, 94, 96}, {58, 88, 89, 101}, {60, 86, 89, 102}, {60, 88, 91, 100}, {67, 92, 96, 99}, {59, 88, 88, 97}, {60, 90, 89, 101}, {63, 89, 91, 95}, {68, 89, 92, 100}, {61, 88, 91, 101}, {61, 85, 88, 100}},
     {{59, 85, 92, 0}, {73, 83, 90, 0}, {70, 86, 95, 0}, {72, 82, 87, 0}, {76, 85, 94, 0}, {70, 85, 88, 0}, {80, 80, 93, 0}, {75, 84, 88, 0}, {69, 83, 93, 0}, {80, 86, 90, 0}, {66, 82, 95, 0}, {77, 82, 94, 0}, {62, 85, 94, 0}, {72, 83, 89, 0}, {63, 83, 90, 0}, {75, 86, 93, 0}, {70, 81, 90, 0}, {71, 88, 91, 0}, {76, 83, 92, 0}, {77, 85, 92, 0}, {79, 83, 93, 0}, {80, 85, 92, 0}, {76, 85, 88, 0}, {74, 87, 92, 0}, {78, 84, 93, 0}, {79, 87, 92, 0}, {71, 85, 91, 0}, {80, 84, 90, 0}, {81, 85, 94, 0}, {79, 82, 90, 0}, {75, 88, 92, 0}, {75, 82, 88, 0}, {74, 82, 94, 0}, {80, 85, 89, 0}, {79, 85, 94, 0}, {73, 84, 89, 0}, {78, 86, 95, 0}, {76, 86, 90, 0}, {75, 83, 90, 0}, {78, 85, 90, 0}, {75, 84, 96, 0}, {69, 82, 95, 0}, {75, 84, 95, 0}, {76, 83, 89, 0}, {78, 80, 92, 0}, {70, 82, 91, 0}, {58, 84, 88, 0}, {73, 87, 92, 0}, {71, 80, 98, 0}, {62, 85, 88, 0}, {61, 81, 91, 0}, {71, 84, 87, 0}, {76, 72, 88, 0}, {63, 85, 92, 0}, {78, 80, 86, 0}, {70, 85, 98, 0}, {69, 85, 93, 0}, {81, 82, 92, 0}, {74, 85, 95, 0}, {69, 84, 85, 0}, {80, 82, 98, 0}, {76, 83, 90, 0}, {70, 82, 86, 0}, {75, 82, 90, 0}, {74, 85, 91, 0}, {72, 87, 96, 0}, {73, 82, 86, 0}, {74, 82, 89, 0}, {62, 85, 92, 0}, {72, 82, 91, 0}, {77, 84, 89, 0}, {72, 81, 89, 0}}};
+
+  TF1 *f1 = new TF1("f1","TMath::Landau(x,[0],[1],0)",-5,10);
+  f1->SetParameters(0,1);
+  double Landau01_turnOn = f1->GetX(0.12,-3.0,-1.0);
+  std::cout << Landau01_turnOn << std::endl;
 
   std::vector<int> laserList;
 
@@ -174,7 +182,7 @@ void HBStudy_plotByQIE::Loop()
         int fg3 = HcalTriggerPrimitiveFineGrain3->at(ch).at(2);
         int fg4 = HcalTriggerPrimitiveFineGrain4->at(ch).at(2);
         int fg5 = HcalTriggerPrimitiveFineGrain5->at(ch).at(2);
-	//	if (fg0 + fg1 + fg2 + fg3 > 0) std::cout << "ieta = " << TPieta << " with fine grain bits set at " << fg0 << ", " << fg1 << ", " << fg2 << ", " << fg3 << std::endl;
+	if (fg0 + fg1 + fg2 + fg3 > 0) std::cout << "ieta = " << TPieta << " with fine grain bits set at " << fg0 << ", " << fg1 << ", " << fg2 << ", " << fg3 << std::endl;
       }
 
       if (abs(TPieta) <= 16) {
@@ -196,7 +204,8 @@ void HBStudy_plotByQIE::Loop()
 	int fg4 = HcalTriggerPrimitiveFineGrain4->at(ch).at(TS);
 	int fg5 = HcalTriggerPrimitiveFineGrain5->at(ch).at(TS);
 	  	    
-	//	if (fg0 || (!fg1 && (fg2 || fg3))) std::cout << "Event " << jentry << ": flagged HCAL TP tower based on FG logic (" << fg0 << fg1 << fg2 << fg3<< "), with TP ieta, iphi " << TPieta << ", " << TPiphi << std::endl;
+	if (fg0 || (!fg1 && (fg2 || fg3))) std::cout << "Event " << jentry << ": flagged HCAL TP tower based on FG logic (" << fg0 << fg1 << fg2 << fg3<< "), with TP ieta, iphi " << TPieta << ", " << TPiphi << std::endl;
+	if ((fg0 + fg1 + fg2 + fg3) > 0) std::cout << "Event " << jentry << ": HCAL TP tower with set FG bits (" << fg0 << fg1 << fg2 << fg3<< "), with TP ieta, iphi " << TPieta << ", " << TPiphi << std::endl;
 	if (fg1 == 1) FB1_by_TS[TPieta]->Fill(laserType,1);
 	if (fg2 == 1) FB2_by_TS[TPieta]->Fill(laserType,1);
 	if (fg3 == 1) FB3_by_TS[TPieta]->Fill(laserType,1);
@@ -207,7 +216,7 @@ void HBStudy_plotByQIE::Loop()
     } // end channel loop
   
     for (int ch = 0; ch < QIE11DigiIEta->size(); ++ch) {
-      int ch_ieta = abs(QIE11DigiIEta->at(ch));
+      int ch_ieta = QIE11DigiIEta->at(ch); // abs(QIE11DigiIEta->at(ch));
       int ch_iphi = QIE11DigiIPhi->at(ch);
       int ch_depth = QIE11DigiDepth->at(ch);
       
@@ -216,22 +225,33 @@ void HBStudy_plotByQIE::Loop()
 
 	if (HB_cell_valid[ch_ieta].find(ch_depth) == HB_cell_valid[ch_ieta].end()) HB_cell_valid[ch_ieta][ch_depth] = new TH1F(Form("HB_cell_valid_ieta%d_depth%d",ch_ieta,ch_depth),"Valid cell;QIE Relative Shift (ns);Fraction of Events",11,-2,9);	
 
-	//	if (QIE11DigiADC->at(ch).at(3) > ADC_4GeV[abs(ch_ieta) - 1][ch_depth - 1]) 
-	if ((QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta - 1][ch_iphi-1][ch_depth - 1] && ch_ieta > 0) || (QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta * -1 + 16 - 1][ch_iphi-1][ch_depth - 1] && ch_ieta < 0))
+	if ((QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta - 1][ch_iphi-1][ch_depth - 1] && ch_ieta > 0) || (QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta * -1 + 16 - 1][ch_iphi-1][ch_depth - 1] && ch_ieta < 0)) {
+	  if (QIE11DigiTDC->at(ch).at(3) < 3) std::cout << "Event " << jentry << ": with QIE11 digi TDC = " << QIE11DigiTDC->at(ch).at(3) << " at ieta, iphi, depth = " << ch_ieta << ", " << ch_iphi << ", " << ch_depth << std::endl;
 	  HB_cell_valid[ch_ieta][ch_depth]->Fill(laserType,1); // just fill if cell > 4 GeV (in SOI)
-	
-	for (int TS = 2; TS < 4; TS++) {
-	  for (int TDC = 0; TDC < 4; TDC++) {
-	    if (HB_TDC_byScan[TS][TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan[TS][TDC][ch_ieta].end()) HB_TDC_byScan[TS][TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_TS%d_%dTDC_byScan_ieta%d_depth%d",TS,TDC,ch_ieta,ch_depth),Form("TDC=%d (TS=%d);QIE Relative Shift (ns);Fraction of Events",TDC,TS),11,-2,9);
-	    if (HB_TDC_byScan_effs[TS][TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan_effs[TS][TDC][ch_ieta].end()) HB_TDC_byScan_effs[TS][TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_TS%d_%dTDC_byScan_effs_ieta%d_depth%d",TS,TDC,ch_ieta,ch_depth),Form("TDC=%d (TS=%d);QIE Relative Shift (ns);Fraction of Events",TDC,TS),11,-2,9);
+
+	  if (HB_landau_fit[laserType][ch_ieta].find(ch_depth) == HB_landau_fit[laserType][ch_ieta].end()) HB_landau_fit[laserType][ch_ieta][ch_depth] = new TH1D(Form("HB_landau_delay%d_ieta%d_depth%d",laserType,ch_ieta,ch_depth),Form("Landau result, QIE=%d, i#eta=%d, depth=%d;fit result;Fraction of pulses",laserType,ch_ieta,ch_depth),25,1.5,4);
+	  TH1F* HB_energy_byTS_landau = new TH1F(Form("HB_pulseShapeFit_ieta%d_depth%d_iphi%d_event%d",QIE11DigiIEta->at(ch),ch_depth,ch_iphi,jentry),Form("Pulse Shape Fit, i#eta=%d, depth=%d;TS;Fraction of Energy",ch_ieta,ch_depth),8,0,8);
+
+          int maxTS = 0;
+          for (int TS = 0; TS < 8; TS++) {
+            if (QIE11DigiADC->at(ch).at(TS) > QIE11DigiADC->at(ch).at(maxTS)) maxTS = TS;
+            HB_energy_byTS_landau->Fill(TS, QIE11DigiADC->at(ch).at(TS));
+          }
+
+          TF1* fit1 = new TF1("fit_landau","landau",maxTS-1,maxTS+3);
+          HB_energy_byTS_landau->Fit(fit1,"QRL+");
+	  HB_landau_fit[laserType][ch_ieta][ch_depth]->Fill(fit1->GetParameter(1)  + fit1->GetParameter(2) * Landau01_turnOn);	  
+
+	  for (int TS = 2; TS < 4; TS++) {
+	    for (int TDC = 0; TDC < 4; TDC++) {
+	      if (HB_TDC_byScan[TS][TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan[TS][TDC][ch_ieta].end()) HB_TDC_byScan[TS][TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_TS%d_%dTDC_byScan_ieta%d_depth%d",TS,TDC,ch_ieta,ch_depth),Form("TDC=%d (TS=%d);QIE Relative Shift (ns);Fraction of Events",TDC,TS),11,-2,9);
+	      if (HB_TDC_byScan_effs[TS][TDC][ch_ieta].find(ch_depth) == HB_TDC_byScan_effs[TS][TDC][ch_ieta].end()) HB_TDC_byScan_effs[TS][TDC][ch_ieta][ch_depth] = new TH1F(Form("HB_TS%d_%dTDC_byScan_effs_ieta%d_depth%d",TS,TDC,ch_ieta,ch_depth),Form("TDC=%d (TS=%d);QIE Relative Shift (ns);Fraction of Events",TDC,TS),11,-2,9);
 	    
 	    // TDC vs QIE delay, only looking at TDC and ADC information from TS3 in QIE11 digis 
-	    //	    if (QIE11DigiADC->at(ch).at(3) > ADC_4GeV[abs(ch_ieta) - 1][ch_depth - 1]) // flat ADC cut
-	    if ((QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta - 1][ch_iphi-1][ch_depth - 1] && ch_ieta > 0) || (QIE11DigiADC->at(ch).at(3) > ADC_xml_decoded[ch_ieta * -1 + 16 - 1][ch_iphi-1][ch_depth - 1] && ch_ieta < 0))
 	      if (QIE11DigiTDC->at(ch).at(TS) == TDC) HB_TDC_byScan[TS][TDC][ch_ieta][ch_depth]->Fill(laserType,1);
-	  } // end TDC loop
-	} // end TS loop (2,3,4)
-	//	if (QIE11DigiTDC->at(ch).at(3) != 3 && jentry == 3748 && (QIE11DigiIEta->at(ch) == -4 || QIE11DigiIEta->at(ch) == 3)) std::cout << "Event " << jentry << ": HCAL TDC is " << QIE11DigiTDC->at(ch).at(3) << " at ieta, iphi " << ch_ieta << ", " << ch_iphi << std::endl;
+	    } // end TDC loop
+	  } // end TS loop (2,3,4)
+	} // end of 4 GeV requirement
       } // end HB loop
     } // end channel loop
   }
@@ -250,6 +270,43 @@ void HBStudy_plotByQIE::Loop()
   //  for (int ieta = -16; ieta <= 16; ieta++) {
   for (int ieta = 1; ieta <= 16; ieta++) { // to combine plots by ieta, use this and above "int ch_ieta = abs(QIE11DigiIEta->at(ch));" for the QIE11 channels
     if (ieta == 0) continue;
+
+    // results from the landau fits
+    TCanvas *cHB_pulse_shape;
+    for (int laser = -2; laser <= 8; laser += 2) {
+      TCanvas *cHB_pulse_4 = new TCanvas("c","c",3200,600);
+      cHB_pulse_4->Divide(4,1,0.01,0.01);
+      for (std::map<int,TH1D*>::iterator it = HB_landau_fit[laser][ieta].begin() ; it != HB_landau_fit[laser][ieta].end(); it++) {
+	cHB_pulse_shape = new TCanvas(); // reset canvas
+	HB_landau_fit[laser][ieta][it->first]->Scale(1/HB_landau_fit[laser][ieta][it->first]->Integral());
+	if (HB_landau_fit[laser][ieta][it->first]->GetEntries() == 0) continue;
+	HB_landau_fit[laser][ieta][it->first]->SetFillColor(40);
+	HB_landau_fit[laser][ieta][it->first]->Draw("bar1");
+	HB_landau_fit[laser][ieta][it->first]->Write();
+	HB_landau_fit[laser][ieta][it->first]->SetMaximum(1);
+	HB_landau_fit[laser][ieta][it->first]->SetMinimum(0.);
+
+	TF1* fit2 = new TF1("fit_gaus","gaus",2,3.5);
+
+	if (it->first == 1) HB_landau_fit[laser][ieta][it->first]->Fit(fit2,"QRL+","",2.5,3.5); // gaussian fit has three parameters. 0: height at peak, 2: position of center of peak, 3: standard deviation (width)
+	if (it->first != 1) HB_landau_fit[laser][ieta][it->first]->Fit(fit2,"QRL+");
+	fit2->Draw();
+	std::cout << "delay = " << laser << ", ieta = " << ieta << ", depth = " << it->first << ", gaussian peak = " << fit2->GetParameter(0) << ", gaussian mean = " << fit2->GetParameter(1) << ", stdev = " << fit2->GetParameter(2) << std::endl;
+
+	gStyle->SetOptStat(1100);
+	gPad->Update();
+	cHB_pulse_4->cd(it->first);
+	HB_landau_fit[laser][ieta][it->first]->SetTitle("");
+	HB_landau_fit[laser][ieta][it->first]->Draw("bar1");
+	HB_landau_fit[laser][ieta][it->first]->Write();
+	latex->DrawLatex(depthXpos, 0.75, Form("#scale[0.8]{depth=%d}",it->first));
+	latex->DrawLatex(depthXpos, 0.65, Form("#scale[0.8]{Gaussian mean=%.3f}",fit2->GetParameter(1)));
+	if (it->first == 2) latex->DrawLatex(0, 0.95, Form("#scale[1.2]{Landau Pulse Shape, i#eta=%d, QIE delay %d}",ieta,laser));	
+	gPad->Update();
+      }
+      latex->DrawLatex(0.35, 0.95, cmsLabel);
+      cHB_pulse_4->SaveAs(Form("2022_plots_relativeScan_Aug_xmlDecode/Landau/HB_LandauFit_QIE%d_ieta%d_2022_13tev.png",laser,ieta));
+    } // end loop over QIE delay settings
 
     for (int depth = 1; depth <= 4; depth ++) {
       if (ieta == 16 && depth == 4) continue;
