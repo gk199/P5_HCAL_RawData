@@ -1,5 +1,7 @@
 # P5_HCAL_RawData
-This is used to analyze the 13.6 TeV collision data with nominal QIE phases. PFG ntuples are crated following the [HCAL tuple maker](https://gitlab.cern.ch/cmshcal/hcalpfg/HcalTupleMaker/-/tree/PFG-CMSSW_12_3_X/) in `/afs/cern.ch/work/g/gkopp/MWGR/13TeV/CMSSW_12_5_0_pre2/src/HCALPFG/HcalTupleMaker`.
+This is used to analyze the 13.6 TeV collision data with nominal QIE phases, and Nov QIE scan. PFG ntuples are crated following the [HCAL tuple maker](https://gitlab.cern.ch/cmshcal/hcalpfg/HcalTupleMaker/-/tree/PFG-CMSSW_12_3_X/) in `/afs/cern.ch/work/g/gkopp/MWGR/13TeV/CMSSW_12_5_0_pre2/src/HCALPFG/HcalTupleMaker`.
+
+For the full statistics, Kiley's analysis code is used: `/afs/cern.ch/work/g/gkopp/MWGR/13TeV/CMSSW_12_5_0_pre2/src/L1LLPJetStudies/TDCAnalyzer/Results` and [Gitlab](https://gitlab.cern.ch/kikenned/L1LLPJetStudies/-/tree/master).
 
 Instead of the HCAL tuple maker instructions of `cmsrel CMSSW_12_3_0`  I use the more recent `cmsrel CMSSW_12_5_0_pre2`, and follow the instructions through the "to build" step. Edit `test/pfg_Global_RAW_cfg_addTP.py` and `plugins/HcalTupleMaker_QIE11Digis.cc`, which can be copied from this github. In HcalTupleMaker, check that `storelaser(true)`  is set, and `lasertype(new int(cumnio->valueUserWord(1)))` is used.
 
@@ -34,6 +36,8 @@ QIE phase scan during collisions: Run 356815, with the [HCAL elog](https://cmson
 
 [Elog](/afs/cern.ch/work/g/gkopp/MWGR/13TeV/CMSSW_12_4_3/src/HCALPFG) for the TDC LUT test in local. 18 October TDC LUTs were loaded for use in collisions as well.
 
+November scan: Test in local [elog](http://cmsonline.cern.ch/cms-elog/1166125), and global scan [elog](http://cmsonline.cern.ch/cms-elog/1167101). 
+
 ## How to Run
 Followed [root macros tutorial](https://root.cern.ch/root/htmldoc/guides/primer/ROOTPrimer.html#root-macros) to convert from running interactively in root to a complied version. Now the running is done via:
 ```
@@ -45,13 +49,20 @@ Specifically for the files in use (first two for initial QIE phase scan for HCAL
 g++ -o process_events_plotByQIE process_events_plotByQIE.C `root-config --cflags --libs`
 ./process_events_plotByQIE
 ```
-plotByQIE does the TDC and FG bit distributions vs ieta.
+plotByQIE does the TDC and FG bit distributions vs ieta. This also does the landau fits for QIE phase setting, using run 360794.
 
 If running interactively, this would be via:
 ```
 root -l -b -q process_events.C
 ```
 I usually run with nohup, such as `nohup ./process_events &` since it takes a few hours to complete (1.5 million events).
+
+### November relevant macros
+`LocalQIEscan_nominal` does 0ns delay, for LUT update plots. 
+
+`LocalQIEscan` is poorly named - was used for local QIE scan tests, but also works for global plotting. This focuses on TDC distributions. 
+
+`TPenergy_QIEscan` is for HCAL TP plots (FG, energy) in QIE scan (November).
 
 ## Other similar work
 
@@ -62,3 +73,6 @@ Data - emulator comparision for the fine grain bits is done in `/afs/cern.ch/wor
 For 900 GeV processing: `/afs/cern.ch/work/g/gkopp/MWGR/900GeV/CMSSW_12_3_4_patch2/src/HCALPFG/HcalTupleAnalyzer/macros`.
 
 `/afs/cern.ch/work/g/gkopp/MWGR/CMSSW_12_0_0/src/HCALPFG/`. November, February, and June 2022 LED scans are processed here. 
+
+## Aug QIE scan
+`/afs/cern.ch/work/g/gkopp/MWGR/13TeV/CMSSW_12_4_3/src/HCALPFG/HcalTupleAnalyzer/macros/HBStudy_plotByQIE.C` scripts with printouts for debugging and landau fits during a scan for confirmation. 
