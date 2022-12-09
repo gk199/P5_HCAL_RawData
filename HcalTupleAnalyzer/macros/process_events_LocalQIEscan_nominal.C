@@ -10,8 +10,8 @@ void process_events_LocalQIEscan_nominal() {
   TChain *chain = new TChain("hcalTupleTree/tree");
 
   // chain files to be looped over
-  chain->Add("file:/afs/cern.ch/work/g/gkopp/MWGR/13TeV/CMSSW_12_5_0_pre2/src/HCALPFG/HcalTupleMaker/test/HcalTupleMaker_Local_run361939.root",0); // Local test of QIE scan_nominal. MUST HAVE LASER TYPE SPECIFIED IN FILE
-  //  chain->Add("file:/afs/cern.ch/work/g/gkopp/MWGR/13TeV/CMSSW_12_5_0_pre2/src/HCALPFG/HcalTupleMaker/test/HcalTupleMaker_Local_run361939_nominal.root",0); // Local test of QIE scan_nominal
+  chain->Add("file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_Local_run361939.root",0); // Local test of QIE scan_nominal. MUST HAVE LASER TYPE SPECIFIED IN FILE
+  //  chain->Add("file:/eos/user/g/gkopp/QIEscans/HcalTupleMaker_Local_run361939_nominal.root",0); // Local test of QIE scan_nominal
 
   chain->ls();
   std::cout << "Total number of entries: " << chain->GetEntries() << std::endl;
